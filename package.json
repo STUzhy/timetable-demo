@@ -1,0 +1,18 @@
+{
+  "name": "course-selection-calendar",
+  "version": "1.0.0",
+  "description": "Vue.js课程选择日历表演示",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.2.0",
+    "vite": "^4.3.0"
+  }
+}
