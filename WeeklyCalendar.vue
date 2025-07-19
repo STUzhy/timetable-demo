@@ -1,7 +1,7 @@
 <template>
   <div class="weekly-calendar scaled-to-fit">
     <div class="calendar-container scaled-to-fit">
-      <div class="calendar-main">
+      <div class="calendar-main" :style="{ width: `calc(100% - ${sidebarWidth}px - 20px)` }">
         <div class="calendar-header">
           <div class="time-column">Time</div>
           <div 
@@ -38,7 +38,9 @@
                   @click.stop="handleCourseBlockClick(course)"
                 >
                   <div class="course-name">{{ course.name }}</div>
-                  <div class="course-info">{{ course.teacher }} · {{ course.room }}</div>
+                  <div class="course-info">{{ course.courseCode }}</div>
+                  <div class="course-info">{{ course.crn }}</div>
+                  <div class="course-info">{{ course.room }}</div>
                   <div v-if="getCourseStartsAtSlot(day.value, timeSlot.hour).length > 1" class="course-index">
                     {{ index + 1 }}/{{ getCourseStartsAtSlot(day.value, timeSlot.hour).length }}
                   </div>
@@ -49,8 +51,17 @@
         </div>
       </div>
       
-      <div class="course-sidebar">
-        <h3>可选课程</h3>
+      <!-- 可拖拽的分隔条 -->
+      <div 
+        class="resizer"
+        @mousedown="startResize"
+        :class="{ 'resizing': isResizing }"
+      >
+        <div class="resizer-handle"></div>
+      </div>
+      
+      <div class="course-sidebar" :style="{ width: `${sidebarWidth}px` }">
+        <h3>Available Courses</h3>
         <div class="course-list">
           <div 
             v-for="course in allCourses"
@@ -62,17 +73,19 @@
             <div class="course-info">
               <div class="course-name">{{ course.name }}</div>
               <div class="course-details">
+                <span class="course-code">{{ course.courseCode }}</span>
+                <span class="course-crn">{{ course.crn }}</span>
                 <span class="course-teacher">{{ course.teacher }}</span>
                 <span class="course-time">{{ formatCourseTime(course) }}</span>
                 <span class="course-room">{{ course.room }}</span>
               </div>
             </div>
             <div class="course-status">
-              <span v-if="course.selected" class="status-badge selected">已选</span>
-              <span v-else-if="isConflicted(course)" class="status-badge conflicted" :title="`与${getConflictedCourse(course)?.name}冲突`">
-                与{{ getConflictedCourse(course)?.name }}冲突
+              <span v-if="course.selected" class="status-badge selected">Selected</span>
+              <span v-else-if="isConflicted(course)" class="status-badge conflicted" :title="`Conflicts with ${getConflictedCourse(course)?.name}`">
+                Conflicts with {{ getConflictedCourse(course)?.name }}
               </span>
-              <span v-else class="status-badge available">可选</span>
+              <span v-else class="status-badge available">Available</span>
             </div>
           </div>
         </div>
@@ -83,16 +96,16 @@
     <div v-if="showConfirmDialog" class="dialog-overlay" @click="cancelReplacement">
       <div class="confirm-dialog" @click.stop>
         <div class="dialog-header">
-          <h3>课程选择确认</h3>
+          <h3>Course Selection Confirmation</h3>
         </div>
         <div class="dialog-content">
-          <p>选择 <strong>{{ pendingCourse?.name }}</strong> 将会取消已选的 <strong>{{ conflictedCourse?.name }}</strong></p>
-          <p>两门课程时间冲突：<span class="time-info">{{ formatCourseTime(pendingCourse) }}</span></p>
-          <p>是否确认替换？</p>
+          <p>Selecting <strong>{{ pendingCourse?.name }}</strong> will deselect the currently selected <strong>{{ conflictedCourse?.name }}</strong></p>
+          <p>Both courses have conflicting time slots: <span class="time-info">{{ formatCourseTime(pendingCourse) }}</span></p>
+          <p>Do you want to confirm the replacement?</p>
         </div>
         <div class="dialog-actions">
-          <button class="btn-cancel" @click="cancelReplacement">取消</button>
-          <button class="btn-confirm" @click="confirmReplacement">确认替换</button>
+          <button class="btn-cancel" @click="cancelReplacement">Cancel</button>
+          <button class="btn-confirm" @click="confirmReplacement">Confirm Replacement</button>
         </div>
       </div>
     </div>
@@ -102,14 +115,20 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
+// 拖拽调整宽度相关状态
+const sidebarWidth = ref(320)
+const isResizing = ref(false)
+const startX = ref(0)
+const startWidth = ref(0)
+
 const weekDays = [
-  { value: 1, label: '周一' },
-  { value: 2, label: '周二' },
-  { value: 3, label: '周三' },
-  { value: 4, label: '周四' },
-  { value: 5, label: '周五' },
-  { value: 6, label: '周六' },
-  { value: 7, label: '周日' }
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' },
+  { value: 7, label: 'Sunday' }
 ]
 
 const timeSlots = [
@@ -129,167 +148,118 @@ const timeSlots = [
   { hour: 21, label: '21:00-21:50' },
   { hour: 22, label: '22:00-22:50' }
 ]
-
 const courses = ref([
-  // 周一 8-11点 时间冲突课程
   {
     id: 1,
-    name: "高等数学A班",
-    teacher: "张教授",
-    time: { day: 1, start: 8, end: 11 },
-    room: "A101",
+    name: "JAVA Prog for Busn Appn",
+    courseCode: "IS 5311 - S61",
+    crn: "12522",
+    teacher: "Man Kit LAU",
+    time: { day: 3, start: 19, end: 22 },
+    room: "LT-17",
     selected: false,
-    credits: 4
+    credits: 3
   },
   {
     id: 2,
-    name: "高等数学B班",
-    teacher: "李教授",
-    time: { day: 1, start: 8, end: 11 },
-    room: "A102",
+    name: "Project Mgt & QA",
+    courseCode: "IS 5540 - S01",
+    crn: "14779",
+    teacher: "R. BANDYOPADHYAY",
+    time: { day: 5, start: 12, end: 15 },
+    room: "G7510",
     selected: false,
-    credits: 4
+    credits: 3
   },
-  
-  // 周二 9-12点 时间冲突课程
   {
     id: 3,
-    name: "线性代数",
-    teacher: "王教授",
-    time: { day: 2, start: 9, end: 12 },
-    room: "B201",
+    name: "Generative AI for Business",
+    courseCode: "IS 5542 - S02",
+    crn: "15205",
+    teacher: "Chong Alex WANG",
+    time: { day: 6, start: 12, end: 15 },
+    room: "LT-7",
     selected: false,
     credits: 3
   },
   {
     id: 4,
-    name: "概率论",
-    teacher: "刘教授",
-    time: { day: 2, start: 9, end: 12 },
-    room: "B202",
+    name: "Business Data Analytics",
+    courseCode: "IS 6400 - S01",
+    crn: "10752",
+    teacher: "Junming LIU",
+    time: { day: 1, start: 12, end: 15 },
+    room: "LI-3614",
     selected: false,
     credits: 3
   },
-  
-  // 周三 14-17点 时间冲突课程
   {
     id: 5,
-    name: "数据结构",
-    teacher: "陈教授",
-    time: { day: 3, start: 14, end: 17 },
-    room: "C301",
+    name: "Programming with Python",
+    courseCode: "IS 5312 - S02",
+    crn: "12669",
+    teacher: "Le WANG",
+    time: { day: 5, start: 15, end: 18 },
+    room: "LI-2610",
     selected: false,
-    credits: 4
+    credits: 3
   },
   {
     id: 6,
-    name: "算法基础",
-    teacher: "赵教授",
-    time: { day: 3, start: 14, end: 17 },
-    room: "C302",
+    name: "Systems Analysis & Design",
+    courseCode: "IS 5411 - C61",
+    crn: "10792",
+    teacher: "Ben LIU",
+    time: { day: 5, start: 19, end: 21 },
+    room: "LI-2505",
     selected: false,
     credits: 3
   },
-  
-  // 周四 10-13点 时间冲突课程
   {
     id: 7,
-    name: "计算机组成原理",
-    teacher: "吴教授",
-    time: { day: 4, start: 10, end: 13 },
-    room: "D401",
+    name: "Systems Analysis & Design",
+    courseCode: "IS 5411 - L62",
+    crn: "10794",
+    teacher: "Junluo CHEN",
+    time: { day: 5, start: 21, end: 22 },
+    room: "LI-3610",
     selected: false,
-    credits: 4
+    credits: 0
   },
   {
     id: 8,
-    name: "微机原理",
-    teacher: "周教授",
-    time: { day: 4, start: 10, end: 13 },
-    room: "D402",
+    name: "Database Management Systems",
+    courseCode: "IS 5413 - C01",
+    crn: "15073",
+    teacher: "Jian MA, Runtao REN",
+    time: { day: 4, start: 9, end: 12 },
+    room: "R R S Creative Media Centre M5050",
     selected: false,
     credits: 3
   },
-  
-  // 周五 15-18点 时间冲突课程  
   {
     id: 9,
-    name: "数据库原理",
-    teacher: "孙教授",
-    time: { day: 5, start: 15, end: 18 },
-    room: "E501",
+    name: "Innovation & Technology Entpp",
+    courseCode: "IS 5940 - S61",
+    crn: "13753",
+    teacher: "Chi Wai R. KWOK",
+    time: { day: 6, start: 16, end: 19 },
+    room: "Yeung Kin Man Acad Building LT-5",
     selected: false,
     credits: 3
   },
   {
     id: 10,
-    name: "软件工程",
-    teacher: "钱教授",
-    time: { day: 5, start: 15, end: 18 },
-    room: "E502",
-    selected: false,
-    credits: 3
-  },
-  
-  // 无冲突课程
-  {
-    id: 11,
-    name: "操作系统",
-    teacher: "朱教授",
-    time: { day: 1, start: 14, end: 17 },
-    room: "F601",
-    selected: false,
-    credits: 4
-  },
-  {
-    id: 12,
-    name: "计算机网络",
-    teacher: "胡教授",
-    time: { day: 2, start: 14, end: 17 },
-    room: "F602",
-    selected: false,
-    credits: 3
-  },
-  {
-    id: 13,
-    name: "编译原理",
-    teacher: "郑教授",
-    time: { day: 4, start: 15, end: 18 },
-    room: "G701",
-    selected: false,
-    credits: 3
-  },
-  
-  // 无冲突课程
-  {
-    id: 14,
-    name: "英语精读",
-    teacher: "王老师",
-    time: { day: 1, start: 19, end: 21 },
-    room: "H801",
-    selected: false,
-    credits: 2
-  },
-  {
-    id: 15,
-    name: "体育课",
-    teacher: "刘老师",
-    time: { day: 3, start: 8, end: 10 },
-    room: "体育馆",
-    selected: false,
-    credits: 1
-  },
-  {
-    id: 16,
-    name: "马克思主义基本原理",
-    teacher: "陈老师",
-    time: { day: 5, start: 8, end: 11 },
-    room: "I901",
+    name: "IS Infsrctr & Secu Mgt",
+    courseCode: "IS 6523 - S01",
+    crn: "14808",
+    teacher: "Woon Kwan D. TSE",
+    time: { day: 1, start: 12, end: 15 },
+    room: "LI-1503",
     selected: false,
     credits: 3
   }
 ])
-
 const selectedCourses = computed(() => 
   courses.value.filter(course => course.selected)
 )
@@ -492,7 +462,7 @@ const closeConfirmDialog = () => {
 
 const formatCourseTime = (course) => {
   const dayName = weekDays.find(d => d.value === course.time.day)?.label
-  return `${dayName} ${course.time.start}:00-${course.time.end}:00`
+  return `${dayName} ${course.time.start}:00-${course.time.end}:50`
 }
 
 
@@ -558,6 +528,38 @@ const getMergedCourseStyle = (course, index, totalCount) => {
   }
 }
 
+// 开始拖拽调整
+const startResize = (event) => {
+  isResizing.value = true
+  startX.value = event.clientX
+  startWidth.value = sidebarWidth.value
+  
+  document.addEventListener('mousemove', handleResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+// 处理拖拽过程
+const handleResize = (event) => {
+  if (!isResizing.value) return
+  
+  const deltaX = startX.value - event.clientX
+  const newWidth = startWidth.value + deltaX
+  
+  // 限制侧边栏宽度在 250px 到 500px 之间
+  sidebarWidth.value = Math.max(250, Math.min(500, newWidth))
+}
+
+// 停止拖拽
+const stopResize = () => {
+  isResizing.value = false
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
+
 // 组件挂载时设置页面不可滚动（适应模式）
 onMounted(() => {
   document.body.style.overflow = 'hidden'
@@ -566,6 +568,9 @@ onMounted(() => {
 // 组件卸载时恢复页面滚动
 onUnmounted(() => {
   document.body.style.overflow = 'auto'
+  // 清理事件监听器
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
 })
 </script>
 
@@ -586,7 +591,7 @@ onUnmounted(() => {
 
 .calendar-container {
   display: flex;
-  gap: 20px;
+  gap: 0;
   width: 100%;
   flex: 1;
   min-height: 0;
@@ -597,12 +602,11 @@ onUnmounted(() => {
 /* 移除对整个容器的高度限制，保持背景完整 */
 
 .calendar-main {
-  flex: 1;
-  min-width: 0;
+  flex: 0 0 auto;
+  min-width: 400px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  width: calc(100% - 340px);
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -622,7 +626,7 @@ onUnmounted(() => {
 
 .time-row {
   flex: 1;
-  min-height: 0;
+  min-height: 60px;
   display: grid;
   grid-template-columns: 80px repeat(7, 1fr);
   column-gap: 1px;
@@ -632,17 +636,56 @@ onUnmounted(() => {
 }
 
 .course-sidebar {
-  width: 320px;
   background: white;
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  flex: 0 0 320px;
+  flex: 0 0 auto;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   height: 100%;
+  min-width: 250px;
+}
+
+/* 拖拽分隔条样式 */
+.resizer {
+  width: 8px;
+  background: #f0f0f0;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+  position: relative;
+  height: calc(100% - 16px);
+  margin: 8px 0;
+}
+
+.resizer:hover {
+  background: #e0e0e0;
+}
+
+.resizer.resizing {
+  background: #2196f3;
+}
+
+.resizer-handle {
+  width: 2px;
+  height: 30px;
+  background: #bbb;
+  border-radius: 1px;
+  transition: background-color 0.2s;
+}
+
+.resizer:hover .resizer-handle {
+  background: #999;
+}
+
+.resizer.resizing .resizer-handle {
+  background: white;
 }
 
 .calendar-header {
@@ -726,7 +769,8 @@ onUnmounted(() => {
 .course-block {
   width: 100%;
   height: 100%;
-  padding: 6px 8px;
+  min-height: 60px;
+  padding: 4px 6px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
@@ -738,9 +782,9 @@ onUnmounted(() => {
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
   transition: all 0.3s ease;
   position: absolute;
-  overflow: hidden;
+  overflow: visible;
   z-index: 100;
-  gap: 2px;
+  gap: 1px;
   box-sizing: border-box;
   pointer-events: auto;
 }
@@ -783,13 +827,20 @@ onUnmounted(() => {
 
 .course-name {
   font-weight: bold;
-  margin-bottom: 4px;
-  font-size: 13px;
+  margin-bottom: 1px;
+  font-size: 12px;
   line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
   width: 100%;
+  max-height: 2.4em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .course-teacher {
@@ -803,12 +854,13 @@ onUnmounted(() => {
 }
 
 .course-info {
-  font-size: 10px;
+  font-size: 9px;
   opacity: 0.8;
-  line-height: 1.3;
+  line-height: 1.1;
   text-align: left;
   word-wrap: break-word;
   width: 100%;
+  margin: 0;
 }
 
 .course-index {
