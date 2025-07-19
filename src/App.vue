@@ -1,22 +1,23 @@
 <template>
-    <div>
-        <h1>Course Selection</h1>
-        <RequiredCourses />
-        <ElectiveCourses />
-        <ProgressBar />
-        <WeeklyCalendar />
+    <div id="app">
+        <!-- Static layout like header/navbar could go here -->
+        <router-view />
     </div>
 </template>
 
 <script setup>
-    import RequiredCourses from './components/RequiredCourses.vue';
-    import ElectiveCourses from './components/ElectiveCourses.vue';
-    import ProgressBar from './components/ProgressBar.vue';
-    import WeeklyCalendar from './components/WeeklyCalendar.vue';
+    // No component imports here unless used globally
 </script>
 
 <style scoped>
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 #app {
-  padding: 2rem;
+    padding: 0;
+    margin: 0;
+    max-width: 100%;
 }
 </style>

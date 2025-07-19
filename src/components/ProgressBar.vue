@@ -1,43 +1,38 @@
 <template>
-    <section class="section" id="progress-section">
-        <h2>Course Selection Progress</h2>
+    <div class="progress-container">
         <div class="progress-bar">
-            <div class="fill" :style="{ width: percentage + '%' }">
-                {{ percentage }}%
-            </div>
+            <div
+                    class="progress-fill"
+                    :style="{ width: progress + '%' }"
+                    ></div>
         </div>
-    </section>
+        <p>{{ count }} / 10 Courses Selected</p>
+    </div>
 </template>
 
 <script setup>
-    import { computed } from 'vue';
-import { useCourseStore } from '../store/courseStore.js';
-import { requiredCourses, electiveCourses } from '../data/courses.js';
+    import { useCourseStore } from '../store/courseStore.js'
+import { computed } from 'vue'
 
-const store = useCourseStore();
-const total = requiredCourses.length + electiveCourses.length;
-
-const percentage = computed(() =>
-  Math.floor((store.selectedCourses.size / total) * 100)
-);
+const store = useCourseStore()
+const count = computed(() => store.selectedCount)
+const progress = computed(() => (count.value / 10) * 100)
 </script>
 
 <style scoped>
-.section {
-    margin-top: 2rem;
+.progress-container {
+    margin-top: 1rem;
+    width: 100%;
 }
 .progress-bar {
-    width: 100%;
-    height: 24px;
-    border: 1px solid #333;
-    position: relative;
+    height: 20px;
+    background-color: var(--nord4);
+    border-radius: 10px;
+    overflow: hidden;
 }
-.fill {
+.progress-fill {
     height: 100%;
-    background-color: #4caf50;
-    color: white;
-    text-align: center;
-    line-height: 24px;
-    transition: width 0.3s;
+    background-color: var(--nord10); /* Blue fill */
+    transition: width 0.3s ease;
 }
 </style>

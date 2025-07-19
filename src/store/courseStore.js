@@ -1,24 +1,42 @@
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
+// src/store/courseStore.js
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
 
-export const useCourseStore = defineStore('courseStore', () => {
-    const selectedCourses = ref(new Set());
+export const useCourseStore = defineStore('course', () => {
+    // ✅ Use `ref` for array reactivity
+    const selectedCourses = ref([])
 
-    function toggleCourse(code) {
-        if (selectedCourses.value.has(code)) {
-            selectedCourses.value.delete(code);
+    const isSelected = (code) => {
+        return selectedCourses.value.some(c => c.code === code)
+    }
+
+    const hasConflict = (newCourse) => {
+        return selectedCourses.value.some(course => {
+            return course.day === newCourse.day &&
+                course.startHour < newCourse.startHour + newCourse.duration &&
+                newCourse.startHour < course.startHour + course.duration
+        })
+    }
+
+    const toggleCourse = (course) => {
+        if (isSelected(course.code)) {
+            selectedCourses.value = selectedCourses.value.filter(c => c.code !== course.code)
         } else {
-            selectedCourses.value.add(code);
+            if (selectedCourses.value.length >= 10) {
+                alert('You can only select up to 10 courses.')
+                return
+            }
+            selectedCourses.value.push(course)
         }
     }
 
-    function isSelected(code) {
-        return selectedCourses.value.has(code);
-    }
+    const selectedCount = computed(() => selectedCourses.value.length)
 
     return {
-        selectedCourses,
+        selectedCourses, // ✅ Not nested
         toggleCourse,
         isSelected,
-    };
-});
+        hasConflict,
+        selectedCount
+    }
+})

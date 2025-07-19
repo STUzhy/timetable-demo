@@ -6,8 +6,8 @@
                     v-for="course in electiveCourses"
                     :key="course.code"
                     class="course"
-                    :class="{ selected: store.isSelected(course) }"
-                    @click="store.toggleCourse(course.code)"
+                    :class="{ selected: store.isSelected(course.code) }"
+                    @click="store.toggleCourse(course)"
                     >
                     {{ course.code }} - {{ course.name }}
             </div>
