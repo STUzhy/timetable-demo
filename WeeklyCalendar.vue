@@ -516,14 +516,23 @@ const getCourseColorIndex = (courseId) => {
 
 // 获取合并单元格课程的样式
 const getMergedCourseStyle = (course, index, totalCount) => {
+  // 获取颜色 - 基于课程ID的全局索引，所有课程都使用彩色样式
+  const colorIndex = getCourseColorIndex(course.id)
+  const color = conflictColors[colorIndex]
+  
   if (totalCount === 1) {
-    // 单个课程，计算完整高度，不添加颜色样式
+    // 单个课程，计算完整高度，也使用彩色样式
     const duration = course.time.end - course.time.start
     return {
       width: '100%',
       height: `${duration * 100}%`,
       zIndex: 10,
-      top: '0'
+      top: '0',
+      backgroundColor: color.bg,
+      borderColor: color.border,
+      color: color.text,
+      borderWidth: '1px',
+      borderStyle: 'solid'
     }
   }
   
@@ -534,14 +543,10 @@ const getMergedCourseStyle = (course, index, totalCount) => {
   // 对于冲突课程，只显示当前时间格的高度
   const height = 100 // 每个时间格的高度固定为100%
   
-  // 获取颜色 - 基于课程ID的全局索引
-  const colorIndex = getCourseColorIndex(course.id)
-  const color = conflictColors[colorIndex]
-  
   return {
     position: 'absolute',
     left: `${left}%`,
-    width: `${width - 1}%`, // 减去1%作为间隙
+    width: `${width}%`,
     height: `${height}%`,
     top: '0',
     zIndex: 10,
@@ -598,6 +603,9 @@ onUnmounted(() => {
   flex-direction: column;
   overflow: hidden;
   width: calc(100% - 340px);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 /* 课程表主体高度控制 */
@@ -609,6 +617,7 @@ onUnmounted(() => {
   background: #e0e0e0;
   overflow: hidden;
   min-height: 0;
+  border-radius: 0 0 8px 8px;
 }
 
 .time-row {
@@ -616,7 +625,8 @@ onUnmounted(() => {
   min-height: 0;
   display: grid;
   grid-template-columns: 80px repeat(7, 1fr);
-  gap: 1px;
+  column-gap: 1px;
+  row-gap: 0;
   width: 100%;
   min-width: 0;
 }
@@ -643,6 +653,8 @@ onUnmounted(() => {
   flex-shrink: 0;
   width: 100%;
   min-width: 0;
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
 }
 
 .time-column {
@@ -715,7 +727,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   padding: 6px 8px;
-  border-radius: 3px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
   display: flex;
@@ -724,8 +736,6 @@ onUnmounted(() => {
   align-items: flex-start;
   text-align: left;
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  border: 1px solid rgba(255,255,255,0.8);
-  background: white;
   transition: all 0.3s ease;
   position: absolute;
   overflow: hidden;
@@ -735,27 +745,23 @@ onUnmounted(() => {
   pointer-events: auto;
 }
 
-/* 课程状态样式 */
+/* 课程状态样式 - 统一使用彩色样式 */
 .course-block.selected {
-  background: #2196f3 !important;
+  background: #349bef !important;
   color: white !important;
+  border-color: #2196f3 !important;
   box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3) !important;
-  border: 1px solid #2196f3 !important;
   transform: scale(1.02);
+  opacity: 1 !important;
 }
 
 .course-block.available {
-  background: rgba(76, 175, 80, 0.1) !important;
-  color: #4caf50 !important;
-  border: 1px dashed #4caf50 !important;
+  opacity: 0.9;
 }
 
 .course-block.conflicted {
-  background: rgba(158, 158, 158, 0.2) !important;
-  color: #757575 !important;
-  opacity: 0.6 !important;
+  opacity: 0.6;
   cursor: not-allowed !important;
-  border: 1px dashed #bdbdbd !important;
 }
 
 /* 并列显示的课程块样式 - 移除默认样式以让内联样式生效 */
@@ -767,9 +773,10 @@ onUnmounted(() => {
 .course-block.parallel-display.selected {
   background: #2196f3 !important;
   color: white !important;
-  border: 1px solid #2196f3 !important;
+  border-color: #2196f3 !important;
   box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3) !important;
   transform: scale(1.02);
+  opacity: 1 !important;
 }
 
 /* 移除重复的样式定义 */
