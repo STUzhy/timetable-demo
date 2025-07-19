@@ -3,7 +3,7 @@
     <div class="calendar-container scaled-to-fit">
       <div class="calendar-main">
         <div class="calendar-header">
-          <div class="time-column"></div>
+          <div class="time-column">Time</div>
           <div 
             v-for="day in weekDays" 
             :key="day.value"
@@ -25,21 +25,22 @@
               :key="`${day.value}-${timeSlot.hour}`"
               class="time-cell"
               :class="getCellClass(day.value, timeSlot.hour)"
+              @click="handleCellClick(day.value, timeSlot.hour)"
             >
               <div class="course-blocks-container">
-                <!-- 多课程并排显示 -->
+                <!-- 只在课程开始时间显示完整的课程块 -->
                 <div 
-                  v-for="(course, index) in getCourseForSlot(day.value, timeSlot.hour)"
+                  v-for="(course, index) in getCourseStartsAtSlot(day.value, timeSlot.hour)"
                   :key="course.id"
                   class="course-block"
-                  :class="getCourseBlockClass(course)"
-                  :style="getMultiCourseStyle(index, getCourseForSlot(day.value, timeSlot.hour).length)"
-                  @click="toggleCourseSelection(course)"
+                  :class="getCourseBlockClass(course, getCourseStartsAtSlot(day.value, timeSlot.hour).length)"
+                  :style="getMergedCourseStyle(course, index, getCourseStartsAtSlot(day.value, timeSlot.hour).length)"
+                  @click.stop="handleCourseBlockClick(course)"
                 >
                   <div class="course-name">{{ course.name }}</div>
                   <div class="course-info">{{ course.teacher }} · {{ course.room }}</div>
-                  <div v-if="getCourseForSlot(day.value, timeSlot.hour).length > 1" class="course-index">
-                    {{ index + 1 }}/{{ getCourseForSlot(day.value, timeSlot.hour).length }}
+                  <div v-if="getCourseStartsAtSlot(day.value, timeSlot.hour).length > 1" class="course-index">
+                    {{ index + 1 }}/{{ getCourseStartsAtSlot(day.value, timeSlot.hour).length }}
                   </div>
                 </div>
               </div>
@@ -56,7 +57,7 @@
             :key="course.id"
             class="course-item"
             :class="getCourseItemClass(course)"
-            @click="toggleCourseSelection(course)"
+            @click="handleCourseBlockClick(course)"
           >
             <div class="course-info">
               <div class="course-name">{{ course.name }}</div>
@@ -112,27 +113,30 @@ const weekDays = [
 ]
 
 const timeSlots = [
-  { hour: 8, label: '08:00' },
-  { hour: 9, label: '09:00' },
-  { hour: 10, label: '10:00' },
-  { hour: 11, label: '11:00' },
-  { hour: 12, label: '12:00' },
-  { hour: 13, label: '13:00' },
-  { hour: 14, label: '14:00' },
-  { hour: 15, label: '15:00' },
-  { hour: 16, label: '16:00' },
-  { hour: 17, label: '17:00' },
-  { hour: 18, label: '18:00' },
-  { hour: 19, label: '19:00' }
+  { hour: 8, label: '08:00-08:50' },
+  { hour: 9, label: '09:00-09:50' },
+  { hour: 10, label: '10:00-10:50' },
+  { hour: 11, label: '11:00-11:50' },
+  { hour: 12, label: '12:00-12:50' },
+  { hour: 13, label: '13:00-13:50' },
+  { hour: 14, label: '14:00-14:50' },
+  { hour: 15, label: '15:00-15:50' },
+  { hour: 16, label: '16:00-16:50' },
+  { hour: 17, label: '17:00-17:50' },
+  { hour: 18, label: '18:00-18:50' },
+  { hour: 19, label: '19:00-19:50' },
+  { hour: 20, label: '20:00-20:50' },
+  { hour: 21, label: '21:00-21:50' },
+  { hour: 22, label: '22:00-22:50' }
 ]
 
 const courses = ref([
-  // 周一 8-10点 时间冲突课程
+  // 周一 8-11点 时间冲突课程
   {
     id: 1,
     name: "高等数学A班",
     teacher: "张教授",
-    time: { day: 1, start: 8, end: 10 },
+    time: { day: 1, start: 8, end: 11 },
     room: "A101",
     selected: false,
     credits: 4
@@ -141,18 +145,18 @@ const courses = ref([
     id: 2,
     name: "高等数学B班",
     teacher: "李教授",
-    time: { day: 1, start: 8, end: 10 },
+    time: { day: 1, start: 8, end: 11 },
     room: "A102",
     selected: false,
     credits: 4
   },
   
-  // 周二 9-11点 时间冲突课程
+  // 周二 9-12点 时间冲突课程
   {
     id: 3,
     name: "线性代数",
     teacher: "王教授",
-    time: { day: 2, start: 9, end: 11 },
+    time: { day: 2, start: 9, end: 12 },
     room: "B201",
     selected: false,
     credits: 3
@@ -161,18 +165,18 @@ const courses = ref([
     id: 4,
     name: "概率论",
     teacher: "刘教授",
-    time: { day: 2, start: 9, end: 11 },
+    time: { day: 2, start: 9, end: 12 },
     room: "B202",
     selected: false,
     credits: 3
   },
   
-  // 周三 14-16点 时间冲突课程
+  // 周三 14-17点 时间冲突课程
   {
     id: 5,
     name: "数据结构",
     teacher: "陈教授",
-    time: { day: 3, start: 14, end: 16 },
+    time: { day: 3, start: 14, end: 17 },
     room: "C301",
     selected: false,
     credits: 4
@@ -181,18 +185,18 @@ const courses = ref([
     id: 6,
     name: "算法基础",
     teacher: "赵教授",
-    time: { day: 3, start: 14, end: 16 },
+    time: { day: 3, start: 14, end: 17 },
     room: "C302",
     selected: false,
     credits: 3
   },
   
-  // 周四 10-12点 时间冲突课程
+  // 周四 10-13点 时间冲突课程
   {
     id: 7,
     name: "计算机组成原理",
     teacher: "吴教授",
-    time: { day: 4, start: 10, end: 12 },
+    time: { day: 4, start: 10, end: 13 },
     room: "D401",
     selected: false,
     credits: 4
@@ -201,18 +205,18 @@ const courses = ref([
     id: 8,
     name: "微机原理",
     teacher: "周教授",
-    time: { day: 4, start: 10, end: 12 },
+    time: { day: 4, start: 10, end: 13 },
     room: "D402",
     selected: false,
     credits: 3
   },
   
-  // 周五 15-17点 时间冲突课程  
+  // 周五 15-18点 时间冲突课程  
   {
     id: 9,
     name: "数据库原理",
     teacher: "孙教授",
-    time: { day: 5, start: 15, end: 17 },
+    time: { day: 5, start: 15, end: 18 },
     room: "E501",
     selected: false,
     credits: 3
@@ -221,7 +225,7 @@ const courses = ref([
     id: 10,
     name: "软件工程",
     teacher: "钱教授",
-    time: { day: 5, start: 15, end: 17 },
+    time: { day: 5, start: 15, end: 18 },
     room: "E502",
     selected: false,
     credits: 3
@@ -232,7 +236,7 @@ const courses = ref([
     id: 11,
     name: "操作系统",
     teacher: "朱教授",
-    time: { day: 1, start: 14, end: 16 },
+    time: { day: 1, start: 14, end: 17 },
     room: "F601",
     selected: false,
     credits: 4
@@ -241,7 +245,7 @@ const courses = ref([
     id: 12,
     name: "计算机网络",
     teacher: "胡教授",
-    time: { day: 2, start: 14, end: 16 },
+    time: { day: 2, start: 14, end: 17 },
     room: "F602",
     selected: false,
     credits: 3
@@ -250,8 +254,37 @@ const courses = ref([
     id: 13,
     name: "编译原理",
     teacher: "郑教授",
-    time: { day: 4, start: 15, end: 17 },
+    time: { day: 4, start: 15, end: 18 },
     room: "G701",
+    selected: false,
+    credits: 3
+  },
+  
+  // 无冲突课程
+  {
+    id: 14,
+    name: "英语精读",
+    teacher: "王老师",
+    time: { day: 1, start: 19, end: 21 },
+    room: "H801",
+    selected: false,
+    credits: 2
+  },
+  {
+    id: 15,
+    name: "体育课",
+    teacher: "刘老师",
+    time: { day: 3, start: 8, end: 10 },
+    room: "体育馆",
+    selected: false,
+    credits: 1
+  },
+  {
+    id: 16,
+    name: "马克思主义基本原理",
+    teacher: "陈老师",
+    time: { day: 5, start: 8, end: 11 },
+    room: "I901",
     selected: false,
     credits: 3
   }
@@ -309,6 +342,38 @@ const getCourseForSlot = (day, hour) => {
   )
 }
 
+// 获取在指定时间段开始的课程或与其他课程有冲突的课程
+const getCourseStartsAtSlot = (day, hour) => {
+  // 获取在该时间段内的所有课程
+  const coursesInSlot = getCourseForSlot(day, hour)
+  
+  if (coursesInSlot.length <= 1) {
+    // 如果只有一个或没有课程，按原来的逻辑显示
+    return courses.value.filter(course => 
+      course.time.day === day && 
+      hour === course.time.start
+    )
+  }
+  
+  // 如果有多个课程在同一时间段，检查是否有任何冲突
+  const hasConflicts = coursesInSlot.some(course1 => 
+    coursesInSlot.some(course2 => 
+      course1.id !== course2.id && isTimeConflict(course1, course2)
+    )
+  )
+  
+  if (hasConflicts) {
+    // 如果存在冲突，显示所有在该时间段内的课程（并列显示）
+    return coursesInSlot
+  }
+  
+  // 如果没有冲突，按原来的逻辑显示
+  return courses.value.filter(course => 
+    course.time.day === day && 
+    hour === course.time.start
+  )
+}
+
 const getCellClass = (day, hour) => {
   const coursesInSlot = getCourseForSlot(day, hour)
   if (coursesInSlot.length === 0) return ''
@@ -318,11 +383,21 @@ const getCellClass = (day, hour) => {
   
   return {
     'has-selected': hasSelected,
-    'has-available': hasAvailable
+    'has-available': hasAvailable,
+    'has-course': coursesInSlot.length > 0
   }
 }
 
-const getCourseBlockClass = (course) => {
+const getCourseBlockClass = (course, totalCount) => {
+  const isParallel = totalCount > 1
+  
+  if (isParallel) {
+    return {
+      'parallel-display': true,
+      'selected': course.selected,
+    }
+  }
+  
   return {
     'selected': course.selected,
     'available': !course.selected && !isConflicted(course),
@@ -338,12 +413,47 @@ const getCourseItemClass = (course) => {
   }
 }
 
-const toggleCourseSelection = (course) => {
+
+// 处理时间格子点击事件
+const handleCellClick = (day, hour) => {
+  // 获取这个时间格子内的所有课程
+  const coursesInSlot = getCourseForSlot(day, hour)
+  
+  if (coursesInSlot.length === 0) {
+    return // 没有课程，直接返回
+  }
+  
+  // 如果只有一个课程，直接处理
+  if (coursesInSlot.length === 1) {
+    handleCourseBlockClick(coursesInSlot[0])
+    return
+  }
+  
+  // 如果有多个课程，优先处理已选中的课程
+  const selectedCourse = coursesInSlot.find(course => course.selected)
+  if (selectedCourse) {
+    handleCourseBlockClick(selectedCourse)
+    return
+  }
+  
+  // 如果没有已选中的课程，处理第一个可选的课程
+  const availableCourse = coursesInSlot.find(course => !course.selected && !isConflicted(course))
+  if (availableCourse) {
+    handleCourseBlockClick(availableCourse)
+    return
+  }
+  
+  // 如果都是冲突课程，处理第一个
+  handleCourseBlockClick(coursesInSlot[0])
+}
+
+// 处理课程块的直接点击
+const handleCourseBlockClick = (course) => {
   if (course.selected) {
-    // 取消选择已选课程
+    // 点击已选中的课程，直接取消选择
     course.selected = false
   } else if (isConflicted(course)) {
-    // 处理冲突课程的选择
+    // 点击冲突课程，显示替换确认对话框
     const conflicted = getConflictedCourse(course)
     if (conflicted) {
       pendingCourse.value = course
@@ -351,10 +461,11 @@ const toggleCourseSelection = (course) => {
       showConfirmDialog.value = true
     }
   } else {
-    // 选择无冲突课程
+    // 点击可选课程，直接选择
     course.selected = true
   }
 }
+
 
 // 确认替代选择
 const confirmReplacement = () => {
@@ -384,24 +495,61 @@ const formatCourseTime = (course) => {
   return `${dayName} ${course.time.start}:00-${course.time.end}:00`
 }
 
-// 获取多课程并排显示的样式
-const getMultiCourseStyle = (index, totalCount) => {
+
+// 并列显示的课程颜色数组
+const conflictColors = [
+  { bg: 'rgba(255, 193, 7, 0.15)', border: '#ffc107', text: '#856404' },    // 黄色
+  { bg: 'rgba(220, 53, 69, 0.15)', border: '#dc3545', text: '#721c24' },    // 红色
+  { bg: 'rgba(40, 167, 69, 0.15)', border: '#28a745', text: '#155724' },    // 绿色
+  { bg: 'rgba(111, 66, 193, 0.15)', border: '#6f42c1', text: '#493057' },   // 紫色
+  { bg: 'rgba(255, 133, 27, 0.15)', border: '#fd851b', text: '#8a4a00' },   // 橙色
+  { bg: 'rgba(32, 201, 151, 0.15)', border: '#20c997', text: '#0f5132' },   // 青色
+  { bg: 'rgba(253, 126, 20, 0.15)', border: '#fd7e14', text: '#8b4513' },   // 深橙色
+  { bg: 'rgba(108, 117, 125, 0.15)', border: '#6c757d', text: '#495057' }   // 灰色
+]
+
+// 为课程分配固定颜色索引（基于课程ID的全局索引）
+const getCourseColorIndex = (courseId) => {
+  // 直接基于课程ID分配颜色，确保同一课程始终使用相同颜色
+  return (courseId - 1) % conflictColors.length
+}
+
+// 获取合并单元格课程的样式
+const getMergedCourseStyle = (course, index, totalCount) => {
   if (totalCount === 1) {
+    // 单个课程，计算完整高度，不添加颜色样式
+    const duration = course.time.end - course.time.start
     return {
       width: '100%',
-      height: '100%'
+      height: `${duration * 100}%`,
+      zIndex: 10,
+      top: '0'
     }
   }
   
+  // 多个课程并列显示
   const width = Math.floor(100 / totalCount)
   const left = index * width
+  
+  // 对于冲突课程，只显示当前时间格的高度
+  const height = 100 // 每个时间格的高度固定为100%
+  
+  // 获取颜色 - 基于课程ID的全局索引
+  const colorIndex = getCourseColorIndex(course.id)
+  const color = conflictColors[colorIndex]
   
   return {
     position: 'absolute',
     left: `${left}%`,
     width: `${width - 1}%`, // 减去1%作为间隙
-    height: '100%',
-    top: '0'
+    height: `${height}%`,
+    top: '0',
+    zIndex: 10,
+    backgroundColor: color.bg,
+    borderColor: color.border,
+    color: color.text,
+    borderWidth: '1px',
+    borderStyle: 'solid'
   }
 }
 
@@ -499,6 +647,11 @@ onUnmounted(() => {
 
 .time-column {
   background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
 }
 
 .day-header {
@@ -524,13 +677,17 @@ onUnmounted(() => {
 
 .time-cell {
   background: white;
-  padding: 1px;
+  padding: 0;
   position: relative;
-  cursor: pointer;
+  cursor: default;
   overflow: visible;
   height: 100%;
   min-width: 0;
   width: 100%;
+}
+
+.time-cell.has-course {
+  cursor: pointer;
 }
 
 .course-blocks-container {
@@ -538,6 +695,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   min-height: 100%;
+  z-index: 50;
 }
 
 .time-cell.has-selected {
@@ -548,21 +706,33 @@ onUnmounted(() => {
   background: #f9f9f9;
 }
 
+.time-cell.has-course {
+  background: #fafafa;
+  cursor: pointer;
+}
+
 .course-block {
   width: 100%;
   height: 100%;
-  padding: 2px 4px;
-  border-radius: 4px;
+  padding: 6px 8px;
+  border-radius: 3px;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 12px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
+  align-items: flex-start;
+  text-align: left;
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
   border: 1px solid rgba(255,255,255,0.8);
   background: white;
   transition: all 0.3s ease;
-  position: relative;
+  position: absolute;
+  overflow: hidden;
+  z-index: 100;
+  gap: 2px;
+  box-sizing: border-box;
+  pointer-events: auto;
 }
 
 /* 课程状态样式 */
@@ -588,11 +758,31 @@ onUnmounted(() => {
   border: 1px dashed #bdbdbd !important;
 }
 
+/* 并列显示的课程块样式 - 移除默认样式以让内联样式生效 */
+.course-block.parallel-display {
+  opacity: 1 !important;
+  cursor: pointer !important;
+}
+
+.course-block.parallel-display.selected {
+  background: #2196f3 !important;
+  color: white !important;
+  border: 1px solid #2196f3 !important;
+  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3) !important;
+  transform: scale(1.02);
+}
+
 /* 移除重复的样式定义 */
 
 .course-name {
   font-weight: bold;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 }
 
 .course-teacher {
@@ -606,11 +796,12 @@ onUnmounted(() => {
 }
 
 .course-info {
-  font-size: 9px;
+  font-size: 10px;
   opacity: 0.8;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.3;
+  text-align: left;
+  word-wrap: break-word;
+  width: 100%;
 }
 
 .course-index {
