@@ -19,7 +19,7 @@ import WeeklyCalendar from '../components/WeeklyCalendar.vue'
 
 <style scoped>
 .course-planning {
-    padding: 2rem;
+    padding: 2rem 2rem 2rem 2rem;
     background-color: transparent; /* 让App.vue的渐变背景显示 */
     color: var(--nord0);
     min-height: 100vh;

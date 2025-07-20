@@ -1,7 +1,7 @@
 <template>
   <div class="weekly-calendar scaled-to-fit">
     <div class="calendar-container scaled-to-fit">
-      <div class="calendar-main" :style="{ width: `calc(100% - ${sidebarWidth}px - 20px)` }">
+      <div class="calendar-main" :style="{ width: `calc(100% - ${sidebarWidth}px - 8px)` }">
         <div class="calendar-header">
           <div class="time-column">Time</div>
           <div 
@@ -554,7 +554,7 @@ onUnmounted(() => {
 
 <style scoped>
 .weekly-calendar {
-  padding: 20px;
+  padding: 0 20px 20px 0;
   font-family: Arial, sans-serif;
   height: calc(100vh - 40px);
   width: 100%;
@@ -565,10 +565,12 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
-/* 在CoursePlanning页面中调整高度 */
+/* 在CoursePlanning页面中调整高度和左边距 */
 .course-planning .weekly-calendar {
-  height: 80vh;
-  min-height: 600px;
+  height: 100vh;
+  min-height: 800px;
+  padding-left: 0;
+  margin-left: 0;
 }
 
 .calendar-container {
