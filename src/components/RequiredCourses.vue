@@ -21,3 +21,24 @@ const store = useCourseStore();
         </div>
     </section>
 </template>
+
+<style scoped>
+.section {
+    margin-bottom: 2rem;
+}
+.course-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.course {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f4f4f4;
+    cursor: pointer;
+}
+.course.selected {
+    background-color: #cce5ff;
+}
+</style>
