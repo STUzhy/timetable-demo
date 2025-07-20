@@ -91,6 +91,7 @@ nav a {
     text-decoration: none;
     color: var(--nord6);
     font-weight: 500;
+    font-size: 1.8rem;
 }
 nav a.active {
     color: var(--nord12); /* orange */
@@ -109,6 +110,10 @@ nav a.active {
     padding: 4rem 2rem;
     background: linear-gradient(145deg, var(--nord15), var(--nord6));
     color: var(--nord0);
+}
+.hero p {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
 }
 .hero h1 {
     font-size: 2.8rem;
@@ -145,6 +150,14 @@ nav a.active {
     color: var(--nord1);
     box-shadow: 0 0.5rem 1.5rem var(--nord15);
     transition: transform 0.2s ease;
+}
+.card h3 {
+    font-size: 1.3rem;
+    margin: 1rem 0 0.5rem 0;
+}
+.card p {
+    font-size: 1rem;
+    line-height: 1.5;
 }
 .card:hover {
     transform: scale(1.03);
