@@ -84,6 +84,9 @@
               <span v-else-if="course.selected && selectedCourses.filter(sc => sc.id !== course.id && isTimeConflict(course, sc)).length > 0" class="status-badge conflicted">
                 Time Conflict
               </span>
+              <span v-else-if="!course.selected && selectedCourses.some(sc => isTimeConflict(course, sc))" class="status-badge conflicted">
+                Time Conflict
+              </span>
               <span v-else class="status-badge available">Available</span>
             </div>
           </div>
