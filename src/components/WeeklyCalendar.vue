@@ -273,10 +273,15 @@ const getCourseItemClass = (course) => {
       'available': false
     }
   } else {
+    // 检查未选中的课程是否与已选课程冲突
+    const hasConflictWithSelected = selectedCourses.value.some(selectedCourse => 
+      isTimeConflict(course, selectedCourse)
+    )
+    
     return {
       'selected': false,
-      'conflicted': false,
-      'available': true
+      'conflicted': hasConflictWithSelected,
+      'available': !hasConflictWithSelected
     }
   }
 }
