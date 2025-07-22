@@ -25,15 +25,15 @@
               :key="`${day.value}-${timeSlot.hour}`"
               class="time-cell"
               :class="getCellClass(day.value, timeSlot.hour)"
-              @click="handleCellClick(day.value, timeSlot.hour)"
+              @click="handleCellClick(day.value, timeSlot.hour, $event)"
             >
               <div class="course-blocks-container">
                 <!-- 只在课程开始时间显示完整的课程块 -->
                 <div 
                   v-for="(course, index) in getCourseStartsAtSlot(day.value, timeSlot.hour)"
-                  :key="course.id"
+                  :key="`${course.id}-${day.value}-${timeSlot.hour}`"
                   class="course-block"
-                  :style="getMergedCourseStyle(course, index, getCourseStartsAtSlot(day.value, timeSlot.hour).length, timeSlot.hour)"
+                  :style="getMergedCourseStyle(course, index, getCourseStartsAtSlot(day.value, timeSlot.hour).length)"
                   @click.stop="handleCourseBlockClick(course)"
                 >
                   <div class="course-name">{{ course.name }}</div>
@@ -282,41 +282,128 @@ const getCourseItemClass = (course) => {
 }
 
 // 处理时间格子点击事件
-const handleCellClick = (day, hour) => {
+const handleCellClick = (day, hour, event) => {
+  console.log('🔥 Cell clicked:', { 
+    day, 
+    hour, 
+    target: event?.target?.className,
+    targetTag: event?.target?.tagName 
+  })
+  
   // 获取这个时间格子内的所有课程
   const coursesInSlot = getCourseForSlot(day, hour)
+  console.log('📚 Courses in slot:', coursesInSlot.map(c => ({ 
+    name: c.name, 
+    start: c.time.start, 
+    selected: c.selected,
+    conflicted: isConflicted(c)
+  })))
+  
+  // 详细分析每个课程的状态
+  const selectedCourse = coursesInSlot.find(course => course.selected)
+  const availableCourse = coursesInSlot.find(course => !course.selected && !isConflicted(course))
+  const conflictedCourses = coursesInSlot.filter(course => !course.selected && isConflicted(course))
+  
+  console.log('📊 Course analysis:', {
+    selectedCourse: selectedCourse?.name || 'None',
+    availableCourse: availableCourse?.name || 'None', 
+    conflictedCourses: conflictedCourses.map(c => c.name),
+    totalCourses: coursesInSlot.length
+  })
   
   if (coursesInSlot.length === 0) {
+    console.log('❌ No courses in slot, returning')
     return // 没有课程，直接返回
   }
   
   // 如果只有一个课程，直接处理
   if (coursesInSlot.length === 1) {
+    console.log('✅ Single course, handling directly:', coursesInSlot[0].name)
     handleCourseBlockClick(coursesInSlot[0])
     return
   }
   
-  // 如果有多个课程，优先处理已选中的课程
-  const selectedCourse = coursesInSlot.find(course => course.selected)
-  if (selectedCourse) {
-    handleCourseBlockClick(selectedCourse)
-    return
-  }
+  // 如果有多个课程，应该根据点击位置来选择，而不是优先处理已选中的课程
+  // 这样用户可以通过点击不同位置来选择不同的课程（包括已选中的和未选中的）
   
-  // 如果没有已选中的课程，处理第一个可选的课程
-  const availableCourse = coursesInSlot.find(course => !course.selected && !isConflicted(course))
-  if (availableCourse) {
-    handleCourseBlockClick(availableCourse)
-    return
+  // 如果有多个课程，根据点击位置确定选择哪个课程
+  console.log('🔴 Multiple courses detected, calculating position...')
+  if (event && coursesInSlot.length > 1) {
+    // 找到真正的time-cell元素来计算点击位置
+    let timeCellElement = event.target
+    let searchDepth = 0
+    console.log('🔍 Searching for time-cell element...')
+    
+    while (timeCellElement && !timeCellElement.classList.contains('time-cell') && searchDepth < 5) {
+      console.log(`  - Element ${searchDepth}:`, {
+        tag: timeCellElement.tagName,
+        classes: timeCellElement.className
+      })
+      timeCellElement = timeCellElement.parentElement
+      searchDepth++
+    }
+    
+    if (timeCellElement && timeCellElement.classList.contains('time-cell')) {
+      const rect = timeCellElement.getBoundingClientRect()
+      const clickX = event.clientX - rect.left
+      const cellWidth = rect.width
+      const courseWidth = cellWidth / coursesInSlot.length
+      const clickedIndex = Math.floor(clickX / courseWidth)
+      const safeIndex = Math.min(Math.max(0, clickedIndex), coursesInSlot.length - 1)
+      
+      console.log('📍 Position calculation:', {
+        timeCellFound: true,
+        clickX,
+        cellWidth,
+        courseWidth,
+        coursesLength: coursesInSlot.length,
+        clickedIndex,
+        safeIndex,
+        selectedCourse: coursesInSlot[safeIndex]?.name
+      })
+      
+      handleCourseBlockClick(coursesInSlot[safeIndex])
+    } else {
+      console.log('⚠️ Could not find time-cell element after search, using first course')
+      console.log('Final element:', timeCellElement ? {
+        tag: timeCellElement.tagName,
+        classes: timeCellElement.className
+      } : 'null')
+      handleCourseBlockClick(coursesInSlot[0])
+    }
+  } else {
+    // 如果没有事件信息或只有一个课程
+    if (coursesInSlot.length === 1) {
+      console.log('📱 Single course fallback, handling:', coursesInSlot[0].name)
+      handleCourseBlockClick(coursesInSlot[0])
+    } else if (selectedCourse) {
+      // 如果有多个课程但没有位置信息，优先处理已选中的课程
+      console.log('⭐ Multiple courses but no position, handling selected:', selectedCourse.name)
+      handleCourseBlockClick(selectedCourse)
+    } else if (availableCourse) {
+      console.log('🟢 Multiple courses but no position, handling available:', availableCourse.name)
+      handleCourseBlockClick(availableCourse)
+    } else {
+      console.log('🔴 Multiple courses but no position, handling first:', coursesInSlot[0]?.name)
+      handleCourseBlockClick(coursesInSlot[0])
+    }
   }
-  
-  // 如果都是冲突课程，处理第一个
-  handleCourseBlockClick(coursesInSlot[0])
 }
 
 // 处理课程块的直接点击
 const handleCourseBlockClick = (course) => {
+  const conflicted = isConflicted(course)
+  const conflictedWithCourse = getConflictedCourse(course)
+  
+  console.log('🎯 Course block clicked:', { 
+    name: course.name, 
+    selected: course.selected, 
+    conflicted: conflicted,
+    conflictedWithCourse: conflictedWithCourse?.name || 'None'
+  })
+  
   if (course.selected) {
+    console.log('🔄 Deselecting course:', course.name)
     // 点击已选中的课程，直接取消选择
     course.selected = false
     // 同时更新store
@@ -324,15 +411,19 @@ const handleCourseBlockClick = (course) => {
     if (originalCourse) {
       store.toggleCourse(originalCourse)
     }
-  } else if (isConflicted(course)) {
+  } else if (conflicted) {
+    console.log('⚠️ Course is conflicted, showing dialog. Conflicted with:', conflictedWithCourse?.name)
     // 点击冲突课程，显示替换确认对话框
-    const conflicted = getConflictedCourse(course)
-    if (conflicted) {
+    if (conflictedWithCourse) {
       pendingCourse.value = course
-      conflictedCourse.value = conflicted
+      conflictedCourse.value = conflictedWithCourse
       showConfirmDialog.value = true
+      console.log('📋 Dialog should show now')
+    } else {
+      console.log('❌ No conflicted course found, this should not happen')
     }
   } else {
+    console.log('✅ Course is available, selecting directly')
     // 点击可选课程，直接选择
     course.selected = true
     // 同时更新store
@@ -384,42 +475,50 @@ const formatCourseTime = (course) => {
 const getSimpleColorStyle = (course) => {
   const isSelected = course.selected
   
-  // Only check conflicts if this course is selected
+  // Check if this course conflicts with any selected course
+  const hasConflictWithSelected = selectedCourses.value.some(selectedCourse => 
+    selectedCourse.id !== course.id && isTimeConflict(course, selectedCourse)
+  )
+  
   if (isSelected) {
-    const conflictingSelectedCourses = selectedCourses.value.filter(selectedCourse => 
-      selectedCourse.id !== course.id && isTimeConflict(course, selectedCourse)
-    )
-    
-    // Red only when THIS selected course conflicts with OTHER selected courses
-    if (conflictingSelectedCourses.length > 0) {
+    // Selected course - blue if no conflicts, red if conflicts
+    if (hasConflictWithSelected) {
       return {
-        backgroundColor: '#BF616A', // Nord11 - Red
+        backgroundColor: '#BF616A', // Nord11 - Red (conflict)
         borderColor: '#BF616A',
         color: '#ECEFF4', // Nord6 - Light text
         opacity: '1'
       }
     } else {
-      // Bright blue for selected (no conflicts)
       return {
-        backgroundColor: '#81A1C1', // Nord9 - Brighter blue
+        backgroundColor: '#81A1C1', // Nord9 - Brighter blue (selected, no conflict)
         borderColor: '#81A1C1', 
         color: '#ECEFF4', // Nord6 - Light text
         opacity: '1'
       }
     }
   } else {
-    // Green for available (not selected)
-    return {
-      backgroundColor: '#A3BE8C', // Nord14 - Green
-      borderColor: '#A3BE8C',
-      color: '#2E3440', // Nord0 - Dark text
-      opacity: '1'
+    // Not selected course - red if conflicts with selected, green if available
+    if (hasConflictWithSelected) {
+      return {
+        backgroundColor: '#BF616A', // Nord11 - Red (conflicts with selected)
+        borderColor: '#BF616A',
+        color: '#ECEFF4', // Nord6 - Light text
+        opacity: '1'
+      }
+    } else {
+      return {
+        backgroundColor: '#A3BE8C', // Nord14 - Green (available)
+        borderColor: '#A3BE8C',
+        color: '#2E3440', // Nord0 - Dark text
+        opacity: '1'
+      }
     }
   }
 }
 
 // 获取合并单元格课程的样式
-const getMergedCourseStyle = (course, index, totalCount, currentHour) => {
+const getMergedCourseStyle = (course, index, totalCount) => {
   const colorStyle = getSimpleColorStyle(course)
   
   if (totalCount === 1) {
@@ -435,28 +534,25 @@ const getMergedCourseStyle = (course, index, totalCount, currentHour) => {
       borderColor: colorStyle.borderColor,
       color: colorStyle.color,
       opacity: colorStyle.opacity,
-      borderWidth: '3px',
-      borderStyle: 'solid'
     }
   }
   
-  // 多个课程并列显示（冲突情况）- 都显示为红色
+  // 多个课程并列显示（冲突情况）- 每个课程显示完整的高度跨越
   const width = Math.floor(100 / totalCount)
   const left = index * width
+  const duration = course.time.end - course.time.start
   
   return {
     position: 'absolute',
     left: `${left}%`,
     width: `${width}%`,
-    height: '100%',
+    height: `${duration * 100}%`,
     top: '0',
     zIndex: 200 + index,
-    backgroundColor: '#BF616A', // Red for all conflicts
-    borderColor: '#BF616A',
-    color: '#ECEFF4',
-    opacity: '1',
-    borderWidth: '3px',
-    borderStyle: 'solid'
+    backgroundColor: colorStyle.backgroundColor,
+    borderColor: colorStyle.borderColor,
+    color: colorStyle.color,
+    opacity: colorStyle.opacity,
   }
 }
 
@@ -695,18 +791,17 @@ onUnmounted(() => {
 
 .time-cell.has-selected {
   background: var(--nord8);
-  opacity: 0.3;
+  opacity: 1;
 }
 
 .time-cell.has-available {
   background: var(--nord14);
-  border: 2px solid var(--nord14) !important;
   border-radius: 4px;
 }
 
 .time-cell.has-conflicted {
   background: var(--nord4);
-  opacity: 0.6;
+  opacity: 1;
 }
 
 .time-cell.has-course {
