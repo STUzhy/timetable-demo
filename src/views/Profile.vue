@@ -1,116 +1,127 @@
 <template>
     <div class="profile">
-        <h1>Student Profile</h1>
+        <AppHeader />
         
-        <!-- 学生信息卡片 -->
-        <div class="student-card">
-            <h2>Basic Information</h2>
-            <div class="student-info">
-                <p><strong>Name:</strong> {{ studentInfo.name }}</p>
-                <p><strong>Student ID:</strong> {{ studentInfo.studentNumber }}</p>
-                <p><strong>Year:</strong> {{ studentInfo.year }}</p>
-                <p><strong>Major:</strong> {{ studentInfo.major }}</p>
-            </div>
-        </div>
-
-        <!-- 学习进度统计 -->
-        <div class="progress-card">
-            <h2>Academic Progress</h2>
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-number">{{ store.savedCount }}</span>
-                    <span class="stat-label">Selected Courses</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">{{ requiredCoursesCount }}</span>
-                    <span class="stat-label">Required Courses</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">{{ electiveCoursesCount }}</span>
-                    <span class="stat-label">Elective Courses</span>
+        <div class="profile-content">
+            <h1>Student Profile</h1>
+            
+            <!-- Student Information Card -->
+            <div class="student-card">
+                <h2>Basic Information</h2>
+                <div class="student-info">
+                    <p><strong>Name:</strong> {{ currentStudent.name }}</p>
+                    <p><strong>Student ID:</strong> {{ currentStudent.studentNumber }}</p>
+                    <p><strong>Year:</strong> {{ currentStudent.year }}</p>
+                    <p><strong>Major:</strong> {{ currentStudent.major }}</p>
                 </div>
             </div>
-        </div>
 
-        <!-- 已保存的课程列表 -->
-        <div class="courses-card">
-            <h2>My Courses</h2>
-            <div v-if="store.savedCount === 0" class="no-courses">
-                <p>No courses saved yet</p>
-                <router-link to="/planning" class="planning-link">
-                    Go to Course Planning
+            <!-- Academic Progress Statistics -->
+            <div class="progress-card">
+                <h2>Pre-Enrollment Progress</h2>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-number">{{ store.savedCount }}</span>
+                        <span class="stat-label">Selected Courses</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">{{ requiredCoursesCount }}</span>
+                        <span class="stat-label">Required Courses</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">{{ electiveCoursesCount }}</span>
+                        <span class="stat-label">Elective Courses</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Saved Courses List -->
+            <div class="courses-card">
+                <h2>My Pre-Enrollment Selections</h2>
+                <div v-if="store.savedCount === 0" class="no-courses">
+                    <p>No courses selected yet</p>
+                    <router-link to="/planning" class="planning-link">
+                        Start Pre-Enrollment Planning
+                    </router-link>
+                </div>
+                <div v-else>
+                    <!-- Required Courses -->
+                    <div v-if="savedRequiredCourses.length > 0" class="course-section">
+                        <h3>Required Courses</h3>
+                        <div class="course-list">
+                            <div 
+                                v-for="course in savedRequiredCourses" 
+                                :key="course.code"
+                                class="course-item required"
+                            >
+                                <div class="course-header">
+                                    <span class="course-code">{{ course.code }}</span>
+                                    <span class="course-badge required-badge">Required</span>
+                                </div>
+                                <div class="course-name">{{ course.name }}</div>
+                                <div class="course-details">
+                                    <span>{{ course.professor }}</span>
+                                    <span>{{ course.location }}</span>
+                                    <span>{{ course.day }} {{ course.startHour }}:00-{{ course.startHour + course.duration }}:00</span>
+                                    <span v-if="store.getWeight(course.code) > 0" class="course-weight">
+                                        Weight: {{ store.getWeight(course.code) }} points
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Elective Courses -->
+                    <div v-if="savedElectiveCourses.length > 0" class="course-section">
+                        <h3>Elective Courses</h3>
+                        <div class="course-list">
+                            <div 
+                                v-for="course in savedElectiveCourses" 
+                                :key="course.code"
+                                class="course-item elective"
+                            >
+                                <div class="course-header">
+                                    <span class="course-code">{{ course.code }}</span>
+                                    <span class="course-badge elective-badge">Elective</span>
+                                </div>
+                                <div class="course-name">{{ course.name }}</div>
+                                <div class="course-details">
+                                    <span>{{ course.professor }}</span>
+                                    <span>{{ course.location }}</span>
+                                    <span>{{ course.day }} {{ course.startHour }}:00-{{ course.startHour + course.duration }}:00</span>
+                                    <span v-if="store.getWeight(course.code) > 0" class="course-weight">
+                                        Weight: {{ store.getWeight(course.code) }} points
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="actions">
+                <router-link to="/" class="home-btn">
+                    Back to Home
+                </router-link>
+                <router-link to="/planning" class="back-btn">
+                    Back to Course Planning
                 </router-link>
             </div>
-            <div v-else>
-                <!-- 必修课程 -->
-                <div v-if="savedRequiredCourses.length > 0" class="course-section">
-                    <h3>Required Courses</h3>
-                    <div class="course-list">
-                        <div 
-                            v-for="course in savedRequiredCourses" 
-                            :key="course.code"
-                            class="course-item required"
-                        >
-                            <div class="course-header">
-                                <span class="course-code">{{ course.code }}</span>
-                                <span class="course-badge required-badge">Required</span>
-                            </div>
-                            <div class="course-name">{{ course.name }}</div>
-                            <div class="course-details">
-                                <span>{{ course.professor }}</span>
-                                <span>{{ course.location }}</span>
-                                <span>{{ course.day }} {{ course.startHour }}:00-{{ course.startHour + course.duration }}:00</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 选修课程 -->
-                <div v-if="savedElectiveCourses.length > 0" class="course-section">
-                    <h3>Elective Courses</h3>
-                    <div class="course-list">
-                        <div 
-                            v-for="course in savedElectiveCourses" 
-                            :key="course.code"
-                            class="course-item elective"
-                        >
-                            <div class="course-header">
-                                <span class="course-code">{{ course.code }}</span>
-                                <span class="course-badge elective-badge">Elective</span>
-                            </div>
-                            <div class="course-name">{{ course.name }}</div>
-                            <div class="course-details">
-                                <span>{{ course.professor }}</span>
-                                <span>{{ course.location }}</span>
-                                <span>{{ course.day }} {{ course.startHour }}:00-{{ course.startHour + course.duration }}:00</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 返回按钮 -->
-        <div class="actions">
-            <router-link to="/" class="home-btn">
-                Back to Home
-            </router-link>
-            <router-link to="/planning" class="back-btn">
-                Back to Course Planning
-            </router-link>
         </div>
     </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import AppHeader from '../components/AppHeader.vue'
 import { useCourseStore } from '../store/courseStore.js'
-import { studentInfo } from '../data/studentInfo.js'
+import { currentStudent } from '../data/studentInfo.js'
 import { requiredCourses, electiveCourses } from '../data/courses.js'
 
 const store = useCourseStore()
 
-// 计算必修课和选修课数量
+// Calculate required and elective course counts
 const savedRequiredCourses = computed(() => {
     const requiredCodes = requiredCourses.map(c => c.code)
     return store.savedCourses.filter(course => requiredCodes.includes(course.code))
@@ -127,40 +138,46 @@ const electiveCoursesCount = computed(() => savedElectiveCourses.value.length)
 
 <style scoped>
 .profile {
-    padding: 2rem 2rem 4rem 2rem;
-    background-color: transparent;
-    color: var(--nord0);
+    background: var(--nord5);
+    color: var(--nord1);
     min-height: 100vh;
-    overflow-y: auto;
-    max-height: 100vh;
+    width: 100%;
+    padding-bottom: 2rem;
+}
+
+.profile-content {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .profile h1 {
-    color: white;
+    color: var(--nord1);
     font-size: 2rem;
     margin-bottom: 2rem;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     text-align: center;
 }
 
 .student-card, .progress-card, .courses-card {
-    background: rgba(255, 255, 255, 0.95);
+    background: white;
     border-radius: 12px;
     padding: 1.5rem;
     margin-bottom: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--nord4);
 }
 
 .student-card h2, .progress-card h2, .courses-card h2 {
-    color: #333;
+    color: var(--nord1);
     margin-bottom: 1rem;
-    border-bottom: 2px solid #eee;
+    border-bottom: 2px solid var(--nord4);
     padding-bottom: 0.5rem;
 }
 
 .student-info p {
     margin: 0.5rem 0;
-    color: #555;
+    color: var(--nord2);
+    font-size: 1.1rem;
 }
 
 .stats {
@@ -178,11 +195,11 @@ const electiveCoursesCount = computed(() => savedElectiveCourses.value.length)
 .stat-number {
     font-size: 2rem;
     font-weight: bold;
-    color: #2196F3;
+    color: var(--nord10);
 }
 
 .stat-label {
-    color: #666;
+    color: var(--nord2);
     font-size: 0.9rem;
     margin-top: 0.25rem;
 }
@@ -190,22 +207,24 @@ const electiveCoursesCount = computed(() => savedElectiveCourses.value.length)
 .no-courses {
     text-align: center;
     padding: 2rem;
-    color: #666;
+    color: var(--nord2);
 }
 
 .planning-link {
     display: inline-block;
     margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    background-color: #2196F3;
+    padding: 0.75rem 1.5rem;
+    background-color: var(--nord10);
     color: white;
     text-decoration: none;
-    border-radius: 6px;
-    transition: background-color 0.3s;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-weight: 600;
 }
 
 .planning-link:hover {
-    background-color: #1976D2;
+    background-color: var(--nord9);
+    transform: translateY(-2px);
 }
 
 .course-section {
@@ -213,7 +232,7 @@ const electiveCoursesCount = computed(() => savedElectiveCourses.value.length)
 }
 
 .course-section h3 {
-    color: #333;
+    color: var(--nord1);
     margin-bottom: 1rem;
     font-size: 1.2rem;
 }
@@ -225,16 +244,16 @@ const electiveCoursesCount = computed(() => savedElectiveCourses.value.length)
 }
 
 .course-item {
-    border: 1px solid #ddd;
+    border: 1px solid var(--nord4);
     border-radius: 8px;
     padding: 1rem;
-    background: white;
-    transition: transform 0.2s, box-shadow 0.2s;
+    background: var(--nord6);
+    transition: all 0.3s ease;
 }
 
 .course-item:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .course-header {
@@ -246,7 +265,8 @@ const electiveCoursesCount = computed(() => savedElectiveCourses.value.length)
 
 .course-code {
     font-weight: bold;
-    color: #333;
+    color: var(--nord1);
+    font-size: 1.1rem;
 }
 
 .course-badge {
@@ -257,19 +277,19 @@ const electiveCoursesCount = computed(() => savedElectiveCourses.value.length)
 }
 
 .required-badge {
-    background-color: #ff9800;
+    background-color: var(--nord12);
     color: white;
 }
 
 .elective-badge {
-    background-color: #4CAF50;
+    background-color: var(--nord14);
     color: white;
 }
 
 .course-name {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #222;
+    color: var(--nord1);
     margin-bottom: 0.5rem;
 }
 
@@ -278,7 +298,13 @@ const electiveCoursesCount = computed(() => savedElectiveCourses.value.length)
     flex-direction: column;
     gap: 0.25rem;
     font-size: 0.9rem;
-    color: #666;
+    color: var(--nord2);
+}
+
+.course-weight {
+    color: var(--nord10) !important;
+    font-weight: 600;
+    font-size: 0.9rem;
 }
 
 .actions {
@@ -299,25 +325,25 @@ const electiveCoursesCount = computed(() => savedElectiveCourses.value.length)
 }
 
 .home-btn {
-    background-color: #28a745;
+    background-color: var(--nord8);
 }
 
 .home-btn:hover {
-    background-color: #218838;
+    background-color: var(--nord7);
     transform: translateY(-2px);
 }
 
 .back-btn {
-    background-color: #6c757d;
+    background-color: var(--nord10);
 }
 
 .back-btn:hover {
-    background-color: #5a6268;
+    background-color: var(--nord9);
     transform: translateY(-2px);
 }
 
 @media (max-width: 768px) {
-    .profile {
+    .profile-content {
         padding: 1rem;
     }
     

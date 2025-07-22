@@ -1,6 +1,5 @@
 <template>
     <div id="app">
-        <!-- Static layout like header/navbar could go here -->
         <router-view />
     </div>
 </template>
@@ -21,23 +20,10 @@ body {
     min-height: 100vh;
     width: 100vw;
     max-width: 100vw;
-    background: linear-gradient(135deg, var(--nord10) 0%, var(--nord8) 50%, var(--nord9) 100%);
-    padding: 20px;
     box-sizing: border-box;
     overflow-x: hidden;
-    /* 在planning页面允许滚动，其他页面保持固定高度 */
-}
-
-/* 为planning页面特殊处理 */
-#app:has(.course-planning) {
-    height: auto;
+    /* Allow scrolling on all pages */
     overflow-y: auto;
-}
-
-/* 为其他页面保持全屏布局 */
-#app:not(:has(.course-planning)) {
-    height: 100vh;
-    overflow: hidden;
 }
 
 * {

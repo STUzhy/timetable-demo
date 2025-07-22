@@ -91,6 +91,11 @@
             </div>
           </div>
         </div>
+        
+        <!-- Scroll hint for more courses -->
+        <div class="scroll-hint-sidebar">
+          📚 <strong>Tip:</strong> Scroll right in the timetable to view weekend courses and additional time slots.
+        </div>
       </div>
     </div>
     
@@ -116,8 +121,16 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { requiredCourses, electiveCourses } from '../data/courses.js'
+import { requiredCourses, electiveCourses, allSchoolCourses } from '../data/courses.js'
 import { useCourseStore } from '../store/courseStore.js'
+
+// Props
+const props = defineProps({
+    showAllCourses: {
+        type: Boolean,
+        default: false
+    }
+})
 
 // 使用Pinia store
 const store = useCourseStore()
@@ -156,8 +169,12 @@ const timeSlots = [
 ]
 
 // 将原始数据转换为main分支期望的格式
-const courses = ref([
-  ...requiredCourses.map((course, index) => ({
+const courses = computed(() => {
+  let coursesToShow = props.showAllCourses 
+    ? [...requiredCourses, ...electiveCourses, ...allSchoolCourses]
+    : [...requiredCourses, ...electiveCourses]
+
+  return coursesToShow.map((course, index) => ({
     id: index + 1,
     name: course.name,
     courseCode: course.code,
@@ -170,24 +187,10 @@ const courses = ref([
     },
     room: course.location,
     selected: store.isSelected(course.code),
-    credits: 3
-  })),
-  ...electiveCourses.map((course, index) => ({
-    id: requiredCourses.length + index + 1,
-    name: course.name,
-    courseCode: course.code,
-    crn: `CRN${2000 + index}`,
-    teacher: course.professor,
-    time: { 
-      day: weekDays.find(d => d.label.toLowerCase().startsWith(course.day.toLowerCase()))?.value || 1, 
-      start: course.startHour, 
-      end: course.startHour + course.duration 
-    },
-    room: course.location,
-    selected: store.isSelected(course.code),
-    credits: 3
+    credits: 3,
+    major: course.major || 'Management Information Systems'
   }))
-])
+})
 
 const selectedCourses = computed(() => 
   courses.value.filter(course => course.selected)
@@ -924,6 +927,18 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
+.scroll-hint-sidebar {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--nord6);
+  border: 1px solid var(--nord4);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--nord1);
+  text-align: center;
+  border-left: 4px solid var(--nord10);
+}
+
 .course-item {
   display: flex;
   justify-content: space-between;
@@ -943,14 +958,14 @@ onUnmounted(() => {
 .course-item.selected {
   background: #81A1C1; /* Nord9 - Brighter blue */
   border-color: #81A1C1;
-  color: #ECEFF4;
+  color: white;
   box-shadow: 0 2px 6px rgba(129, 161, 193, 0.3);
 }
 
 .course-item.conflicted {
   background: #BF616A; /* Nord11 - Red */
   border-color: #BF616A;
-  color: #ECEFF4;
+  color: white;
   cursor: pointer; /* Allow clicking to deselect */
   opacity: 1;
 }
@@ -976,12 +991,22 @@ onUnmounted(() => {
   color: #333;
 }
 
+.course-item.selected .course-name,
+.course-item.conflicted .course-name {
+  color: white !important;
+}
+
 .course-details {
   display: flex;
   flex-direction: column;
   gap: 2px;
   font-size: 12px;
   color: #666;
+}
+
+.course-item.selected .course-details,
+.course-item.conflicted .course-details {
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
 .course-details span {
@@ -1014,7 +1039,7 @@ onUnmounted(() => {
 
 .status-badge.conflicted {
   background: #BF616A; /* Nord11 - Red */
-  color: #ECEFF4;
+  color: white;
   max-width: 140px;
   white-space: nowrap;
   overflow: hidden;

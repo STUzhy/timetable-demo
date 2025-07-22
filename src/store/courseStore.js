@@ -15,6 +15,8 @@ export const useCourseStore = defineStore('course', () => {
             if (saved) {
                 savedCourses.value = JSON.parse(saved)
             }
+            // Also load weights when loading courses
+            loadWeights()
         } catch (error) {
             console.error('Failed to load saved courses:', error)
         }
@@ -25,9 +27,11 @@ export const useCourseStore = defineStore('course', () => {
         try {
             const coursesToSave = selectedCourses.value.map(course => ({
                 ...course,
-                savedAt: new Date().toISOString()
+                savedAt: new Date().toISOString(),
+                weights: courseWeights.value
             }))
             localStorage.setItem('savedCourses', JSON.stringify(coursesToSave))
+            localStorage.setItem('courseWeights', JSON.stringify(courseWeights.value))
             savedCourses.value = [...coursesToSave]
             return true
         } catch (error) {
@@ -59,6 +63,13 @@ export const useCourseStore = defineStore('course', () => {
     }
 
     const toggleCourse = (course) => {
+        // Check if in view-only mode
+        const isViewOnly = localStorage.getItem('courseSelectionLocked') === 'true'
+        if (isViewOnly) {
+            alert('Course selection is locked. You cannot modify your selections at this time.')
+            return
+        }
+        
         if (isSelected(course.code)) {
             selectedCourses.value = selectedCourses.value.filter(c => c.code !== course.code)
         } else {
