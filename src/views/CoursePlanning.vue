@@ -1,11 +1,16 @@
 <template>
     <div class="course-planning">
         <h1>Course Planning</h1>
-        <p>This is where you can select required and elective courses.</p>
+        <p>Select courses from the calendar below and assign priority weights to optimize your schedule.</p>
 
-        <RequiredCourses />
-        <ElectiveCourses />
-        <ProgressBar />
+        <!-- Weekly Calendar - Most Important Function, Moved to Top -->
+        <WeeklyCalendar />
+        
+        <!-- Credit Limit Warning - MUST HAVE MoSCoW Requirement -->
+        <CreditLimitWarning />
+        
+        <!-- Course Weight Assignment - MUST HAVE MoSCoW Requirement -->
+        <CourseWeightAssignment />
         
         <div class="action-buttons">
             <router-link to="/" class="home-btn">
@@ -29,14 +34,12 @@
             </button>
         </div>
         
-        <WeeklyCalendar />
     </div>
 </template>
 
 <script setup>
-import RequiredCourses from '../components/RequiredCourses.vue'
-import ElectiveCourses from '../components/ElectiveCourses.vue'
-import ProgressBar from '../components/ProgressBar.vue'
+import CreditLimitWarning from '../components/CreditLimitWarning.vue'
+import CourseWeightAssignment from '../components/CourseWeightAssignment.vue'
 import WeeklyCalendar from '../components/WeeklyCalendar.vue'
 import { useCourseStore } from '../store/courseStore.js'
 import { useRouter } from 'vue-router'
@@ -97,42 +100,43 @@ const goToProfile = () => {
 }
 
 .home-btn {
-    background-color: #28a745;
+    background-color: var(--nord14);
     color: white;
 }
 
 .home-btn:hover {
-    background-color: #218838;
+    background-color: var(--nord15);
     transform: translateY(-2px);
 }
 
 .save-btn {
-    background-color: #4CAF50;
+    background-color: var(--nord10);
     color: white;
 }
 
 .save-btn:hover:not(:disabled) {
-    background-color: #45a049;
+    background-color: var(--nord9);
     transform: translateY(-2px);
 }
 
 .save-btn:disabled {
-    background-color: #cccccc;
+    background-color: var(--nord4);
+    color: var(--nord3);
     cursor: not-allowed;
 }
 
 .save-btn.saved {
-    background-color: #28a745;
+    background-color: var(--nord14);
     opacity: 0.8;
 }
 
 .profile-btn {
-    background-color: #2196F3;
+    background-color: var(--nord8);
     color: white;
 }
 
 .profile-btn:hover {
-    background-color: #1976D2;
+    background-color: var(--nord7);
     transform: translateY(-2px);
 }
 

@@ -21,7 +21,7 @@ body {
     min-height: 100vh;
     width: 100vw;
     max-width: 100vw;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--nord10) 0%, var(--nord8) 50%, var(--nord9) 100%);
     padding: 20px;
     box-sizing: border-box;
     overflow-x: hidden;

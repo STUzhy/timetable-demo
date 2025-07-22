@@ -33,7 +33,6 @@
                   v-for="(course, index) in getCourseStartsAtSlot(day.value, timeSlot.hour)"
                   :key="course.id"
                   class="course-block"
-                  :class="getCourseBlockClass(course, getCourseStartsAtSlot(day.value, timeSlot.hour).length)"
                   :style="getMergedCourseStyle(course, index, getCourseStartsAtSlot(day.value, timeSlot.hour).length, timeSlot.hour)"
                   @click.stop="handleCourseBlockClick(course)"
                 >
@@ -81,9 +80,9 @@
               </div>
             </div>
             <div class="course-status">
-              <span v-if="course.selected" class="status-badge selected">Selected</span>
-              <span v-else-if="isConflicted(course)" class="status-badge conflicted" :title="`Conflicts with ${getConflictedCourse(course)?.name}`">
-                Conflicts with {{ getConflictedCourse(course)?.name }}
+              <span v-if="course.selected && selectedCourses.filter(sc => sc.id !== course.id && isTimeConflict(course, sc)).length === 0" class="status-badge selected">Selected</span>
+              <span v-else-if="course.selected && selectedCourses.filter(sc => sc.id !== course.id && isTimeConflict(course, sc)).length > 0" class="status-badge conflicted">
+                Time Conflict
               </span>
               <span v-else class="status-badge available">Available</span>
             </div>
@@ -137,21 +136,20 @@ const weekDays = [
 ]
 
 const timeSlots = [
-  { hour: 8, label: '08:00-08:50' },
-  { hour: 9, label: '09:00-09:50' },
-  { hour: 10, label: '10:00-10:50' },
-  { hour: 11, label: '11:00-11:50' },
-  { hour: 12, label: '12:00-12:50' },
-  { hour: 13, label: '13:00-13:50' },
-  { hour: 14, label: '14:00-14:50' },
-  { hour: 15, label: '15:00-15:50' },
-  { hour: 16, label: '16:00-16:50' },
-  { hour: 17, label: '17:00-17:50' },
-  { hour: 18, label: '18:00-18:50' },
-  { hour: 19, label: '19:00-19:50' },
-  { hour: 20, label: '20:00-20:50' },
-  { hour: 21, label: '21:00-21:50' },
-  { hour: 22, label: '22:00-22:50' }
+  { hour: 8, label: '08:00-09:00' },
+  { hour: 9, label: '09:00-10:00' },
+  { hour: 10, label: '10:00-11:00' },
+  { hour: 11, label: '11:00-12:00' },
+  { hour: 12, label: '12:00-13:00' },
+  { hour: 13, label: '13:00-14:00' },
+  { hour: 14, label: '14:00-15:00' },
+  { hour: 15, label: '15:00-16:00' },
+  { hour: 16, label: '16:00-17:00' },
+  { hour: 17, label: '17:00-18:00' },
+  { hour: 18, label: '18:00-19:00' },
+  { hour: 19, label: '19:00-20:00' },
+  { hour: 20, label: '20:00-21:00' },
+  { hour: 21, label: '21:00-22:00' }
 ]
 
 // 将原始数据转换为main分支期望的格式
@@ -240,37 +238,11 @@ const getCourseForSlot = (day, hour) => {
 
 // 获取在指定时间段显示的课程
 const getCourseStartsAtSlot = (day, hour) => {
-  // 获取在该时间段内的所有课程
-  const coursesInSlot = getCourseForSlot(day, hour)
-  
-  if (coursesInSlot.length === 0) {
-    return []
-  }
-  
-  if (coursesInSlot.length === 1) {
-    // 只有一个课程
-    const course = coursesInSlot[0]
-    if (course.time.start === hour) {
-      // 在开始时间显示
-      return [course]
-    } else {
-      // 检查前一个时间段是否有冲突，如果有冲突则此时间段也需要显示
-      const prevHourCourses = getCourseForSlot(course.time.day, hour - 1)
-      if (prevHourCourses.length > 1) {
-        // 前一时间段有冲突，当前时间段也要显示单个课程
-        return [course]
-      }
-      return []
-    }
-  }
-  
-  // 多个课程重叠时，检查冲突时间段
-  if (coursesInSlot.length > 1) {
-    // 在每个冲突时间段都显示所有冲突课程，但高度只占一格
-    return coursesInSlot
-  }
-  
-  return []
+  // 只在课程开始时间显示完整的课程块
+  return courses.value.filter(course => 
+    course.time.day === day && 
+    course.time.start === hour
+  )
 }
 
 const getCellClass = (day, hour) => {
@@ -278,37 +250,34 @@ const getCellClass = (day, hour) => {
   if (coursesInSlot.length === 0) return ''
   
   const hasSelected = coursesInSlot.some(course => course.selected)
-  const hasAvailable = coursesInSlot.some(course => course.available && !course.selected)
+  const hasAvailable = coursesInSlot.some(course => !course.selected && !isConflicted(course))
+  const hasConflicted = coursesInSlot.some(course => !course.selected && isConflicted(course))
   
   return {
     'has-selected': hasSelected,
     'has-available': hasAvailable,
+    'has-conflicted': hasConflicted,
     'has-course': coursesInSlot.length > 0
   }
 }
 
-const getCourseBlockClass = (course, totalCount) => {
-  const isParallel = totalCount > 1
-  
-  if (isParallel) {
-    return {
-      'parallel-display': true,
-      'selected': course.selected,
-    }
-  }
-  
-  return {
-    'selected': course.selected,
-    'available': !course.selected && !isConflicted(course),
-    'conflicted': !course.selected && isConflicted(course)
-  }
-}
-
 const getCourseItemClass = (course) => {
-  return {
-    'selected': course.selected,
-    'conflicted': isConflicted(course),
-    'available': !course.selected && !isConflicted(course)
+  if (course.selected) {
+    const conflictingSelectedCourses = selectedCourses.value.filter(selectedCourse => 
+      selectedCourse.id !== course.id && isTimeConflict(course, selectedCourse)
+    )
+    
+    return {
+      'selected': conflictingSelectedCourses.length === 0,
+      'conflicted': conflictingSelectedCourses.length > 0,
+      'available': false
+    }
+  } else {
+    return {
+      'selected': false,
+      'conflicted': false,
+      'available': true
+    }
   }
 }
 
@@ -408,94 +377,85 @@ const closeConfirmDialog = () => {
 
 const formatCourseTime = (course) => {
   const dayName = weekDays.find(d => d.value === course.time.day)?.label
-  return `${dayName} ${course.time.start}:00-${course.time.end}:50`
+  return `${dayName} ${course.time.start}:00-${course.time.end}:00`
 }
 
-// 并列显示的课程颜色数组
-const conflictColors = [
-  { bg: 'rgba(255, 193, 7, 0.15)', border: '#ffc107', text: '#856404' },    // 黄色
-  { bg: 'rgba(220, 53, 69, 0.15)', border: '#dc3545', text: '#721c24' },    // 红色
-  { bg: 'rgba(40, 167, 69, 0.15)', border: '#28a745', text: '#155724' },    // 绿色
-  { bg: 'rgba(111, 66, 193, 0.15)', border: '#6f42c1', text: '#493057' },   // 紫色
-  { bg: 'rgba(255, 133, 27, 0.15)', border: '#fd851b', text: '#8a4a00' },   // 橙色
-  { bg: 'rgba(32, 201, 151, 0.15)', border: '#20c997', text: '#0f5132' },   // 青色
-  { bg: 'rgba(253, 126, 20, 0.15)', border: '#fd7e14', text: '#8b4513' },   // 深橙色
-  { bg: 'rgba(108, 117, 125, 0.15)', border: '#6c757d', text: '#495057' }   // 灰色
-]
-
-// 为课程分配固定颜色索引（基于课程ID的全局索引）
-const getCourseColorIndex = (courseId) => {
-  // 直接基于课程ID分配颜色，确保同一课程始终使用相同颜色
-  return (courseId - 1) % conflictColors.length
+// Simple 3-color system for clear visual feedback
+const getSimpleColorStyle = (course) => {
+  const isSelected = course.selected
+  
+  // Only check conflicts if this course is selected
+  if (isSelected) {
+    const conflictingSelectedCourses = selectedCourses.value.filter(selectedCourse => 
+      selectedCourse.id !== course.id && isTimeConflict(course, selectedCourse)
+    )
+    
+    // Red only when THIS selected course conflicts with OTHER selected courses
+    if (conflictingSelectedCourses.length > 0) {
+      return {
+        backgroundColor: '#BF616A', // Nord11 - Red
+        borderColor: '#BF616A',
+        color: '#ECEFF4', // Nord6 - Light text
+        opacity: '1'
+      }
+    } else {
+      // Bright blue for selected (no conflicts)
+      return {
+        backgroundColor: '#81A1C1', // Nord9 - Brighter blue
+        borderColor: '#81A1C1', 
+        color: '#ECEFF4', // Nord6 - Light text
+        opacity: '1'
+      }
+    }
+  } else {
+    // Green for available (not selected)
+    return {
+      backgroundColor: '#A3BE8C', // Nord14 - Green
+      borderColor: '#A3BE8C',
+      color: '#2E3440', // Nord0 - Dark text
+      opacity: '1'
+    }
+  }
 }
 
 // 获取合并单元格课程的样式
 const getMergedCourseStyle = (course, index, totalCount, currentHour) => {
-  // 获取颜色 - 基于课程ID的全局索引，所有课程都使用彩色样式
-  const colorIndex = getCourseColorIndex(course.id)
-  const color = conflictColors[colorIndex]
+  const colorStyle = getSimpleColorStyle(course)
   
   if (totalCount === 1) {
-    // 单个课程
-    if (course.time.start === currentHour) {
-      // 在开始时间格显示，检查后续时间段是否有冲突，如有冲突则缩短高度
-      let actualDuration = course.time.end - course.time.start
-      
-      // 检查每个后续时间段是否有其他课程
-      for (let hour = currentHour + 1; hour < course.time.end; hour++) {
-        const nextSlotCourses = getCourseForSlot(course.time.day, hour)
-        if (nextSlotCourses.length > 1) {
-          // 有冲突，缩短到冲突开始位置
-          actualDuration = hour - currentHour
-          break
-        }
-      }
-      
-      return {
-        width: '100%',
-        height: `${actualDuration * 100}%`,
-        zIndex: 10,
-        top: '0',
-        backgroundColor: color.bg,
-        borderColor: color.border,
-        color: color.text,
-        borderWidth: '1px',
-        borderStyle: 'solid'
-      }
-    } else {
-      // 不是开始时间，但前一时间段有冲突，显示单格高度
-      return {
-        width: '100%',
-        height: '100%',
-        zIndex: 10,
-        top: '0',
-        backgroundColor: color.bg,
-        borderColor: color.border,
-        color: color.text,
-        borderWidth: '1px',
-        borderStyle: 'solid'
-      }
+    // 单个课程 - 显示完整的课程块跨越多个小时
+    const duration = course.time.end - course.time.start
+    
+    return {
+      width: '100%',
+      height: `${duration * 100}%`,
+      zIndex: 200,
+      top: '0',
+      backgroundColor: colorStyle.backgroundColor,
+      borderColor: colorStyle.borderColor,
+      color: colorStyle.color,
+      opacity: colorStyle.opacity,
+      borderWidth: '3px',
+      borderStyle: 'solid'
     }
   }
   
-  // 多个课程并列显示（冲突情况）
+  // 多个课程并列显示（冲突情况）- 都显示为红色
   const width = Math.floor(100 / totalCount)
   const left = index * width
-  
-  // 冲突时间格只显示当前时间格的高度，确保并列显示
-  const height = 100
   
   return {
     position: 'absolute',
     left: `${left}%`,
     width: `${width}%`,
-    height: `${height}%`,
+    height: '100%',
     top: '0',
-    zIndex: 10 + index,
-    backgroundColor: color.bg,
-    borderColor: color.border,
-    color: color.text,
-    borderWidth: '1px',
+    zIndex: 200 + index,
+    backgroundColor: '#BF616A', // Red for all conflicts
+    borderColor: '#BF616A',
+    color: '#ECEFF4',
+    opacity: '1',
+    borderWidth: '3px',
     borderStyle: 'solid'
   }
 }
@@ -730,15 +690,23 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   min-height: 100%;
-  z-index: 50;
+  z-index: 150; /* Ensure container is above grid */
 }
 
 .time-cell.has-selected {
-  background: #e3f2fd;
+  background: var(--nord8);
+  opacity: 0.3;
 }
 
 .time-cell.has-available {
-  background: #f9f9f9;
+  background: var(--nord14);
+  border: 2px solid var(--nord14) !important;
+  border-radius: 4px;
+}
+
+.time-cell.has-conflicted {
+  background: var(--nord4);
+  opacity: 0.6;
 }
 
 .time-cell.has-course {
@@ -746,12 +714,13 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
+/* MUST HAVE: Simple 3-Color Course Block System */
 .course-block {
   width: 100%;
   height: 100%;
   min-height: 60px;
-  padding: 4px 6px;
-  border-radius: 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 12px;
   display: flex;
@@ -759,48 +728,21 @@ onUnmounted(() => {
   justify-content: flex-start;
   align-items: flex-start;
   text-align: left;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  transition: all 0.2s ease;
   position: absolute;
   overflow: visible;
-  z-index: 100;
-  gap: 1px;
+  z-index: 200;
+  gap: 2px;
   box-sizing: border-box;
   pointer-events: auto;
+  font-weight: 500;
 }
 
-/* 课程状态样式 - 统一使用彩色样式 */
-.course-block.selected {
-  background: #349bef !important;
-  color: white !important;
-  border-color: #2196f3 !important;
-  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3) !important;
+/* Hover effect for better interactivity */
+.course-block:hover {
   transform: scale(1.02);
-  opacity: 1 !important;
-}
-
-.course-block.available {
-  opacity: 0.9;
-}
-
-.course-block.conflicted {
-  opacity: 0.6;
-  cursor: not-allowed !important;
-}
-
-/* 并列显示的课程块样式 - 移除默认样式以让内联样式生效 */
-.course-block.parallel-display {
-  opacity: 1 !important;
-  cursor: pointer !important;
-}
-
-.course-block.parallel-display.selected {
-  background: #2196f3 !important;
-  color: white !important;
-  border-color: #2196f3 !important;
-  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3) !important;
-  transform: scale(1.02);
-  opacity: 1 !important;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 .course-name {
@@ -896,26 +838,28 @@ onUnmounted(() => {
 }
 
 .course-item.selected {
-  background: #e3f2fd;
-  border-color: #2196f3;
-  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.2);
+  background: #81A1C1; /* Nord9 - Brighter blue */
+  border-color: #81A1C1;
+  color: #ECEFF4;
+  box-shadow: 0 2px 6px rgba(129, 161, 193, 0.3);
 }
 
 .course-item.conflicted {
-  background: #f5f5f5;
-  border-color: #bdbdbd;
-  cursor: not-allowed;
-  opacity: 0.7;
+  background: #BF616A; /* Nord11 - Red */
+  border-color: #BF616A;
+  color: #ECEFF4;
+  cursor: pointer; /* Allow clicking to deselect */
+  opacity: 1;
 }
 
 .course-item.available {
-  border-color: #4caf50;
-  background: rgba(76, 175, 80, 0.05);
+  border-color: var(--nord14);
+  background: rgba(163, 190, 140, 0.05);
 }
 
 .course-item.available:hover {
-  background: rgba(76, 175, 80, 0.1);
-  border-color: #388e3c;
+  background: rgba(163, 190, 140, 0.1);
+  border-color: var(--nord15);
 }
 
 .course-info {
@@ -956,18 +900,18 @@ onUnmounted(() => {
 }
 
 .status-badge.selected {
-  background: #2196f3;
+  background: #81A1C1; /* Nord9 - Brighter blue */
   color: white;
 }
 
 .status-badge.available {
-  background: #4caf50;
+  background: var(--nord14);
   color: white;
 }
 
 .status-badge.conflicted {
-  background: #bdbdbd;
-  color: #757575;
+  background: #BF616A; /* Nord11 - Red */
+  color: #ECEFF4;
   max-width: 140px;
   white-space: nowrap;
   overflow: hidden;
@@ -1055,20 +999,20 @@ onUnmounted(() => {
 }
 
 .btn-cancel {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--nord4);
+  color: var(--nord2);
 }
 
 .btn-cancel:hover {
-  background: #e0e0e0;
+  background: var(--nord3);
 }
 
 .btn-confirm {
-  background: #2196f3;
+  background: var(--nord10);
   color: white;
 }
 
 .btn-confirm:hover {
-  background: #1976d2;
+  background: var(--nord9);
 }
 </style>

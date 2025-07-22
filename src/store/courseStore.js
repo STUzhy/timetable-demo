@@ -6,6 +6,7 @@ export const useCourseStore = defineStore('course', () => {
     // ✅ Use `ref` for array reactivity
     const selectedCourses = ref([])
     const savedCourses = ref([])
+    const courseWeights = ref({}) // Store course weights (100-point distribution)
 
     // 加载已保存的课程
     const loadSavedCourses = () => {
@@ -61,23 +62,61 @@ export const useCourseStore = defineStore('course', () => {
         if (isSelected(course.code)) {
             selectedCourses.value = selectedCourses.value.filter(c => c.code !== course.code)
         } else {
-            if (selectedCourses.value.length >= 10) {
-                alert('You can only select up to 10 courses.')
+            // Check credit limit (6 courses max: 5 primary + 1 backup)
+            if (selectedCourses.value.length >= 6) {
+                alert('Maximum 6 courses allowed (5 primary + 1 backup). Please remove a course first.')
                 return
             }
             selectedCourses.value.push(course)
         }
     }
 
+    // Weight management functions
+    const saveWeights = (weights) => {
+        try {
+            courseWeights.value = { ...weights }
+            localStorage.setItem('courseWeights', JSON.stringify(weights))
+            return true
+        } catch (error) {
+            console.error('Failed to save weights:', error)
+            return false
+        }
+    }
+
+    const loadWeights = () => {
+        try {
+            const saved = localStorage.getItem('courseWeights')
+            if (saved) {
+                courseWeights.value = JSON.parse(saved)
+            }
+        } catch (error) {
+            console.error('Failed to load weights:', error)
+        }
+    }
+
+    const getWeight = (courseCode) => {
+        return courseWeights.value[courseCode] || 0
+    }
+
+    const getTotalWeight = computed(() => {
+        return Object.values(courseWeights.value).reduce((sum, weight) => sum + (weight || 0), 0)
+    })
+
+    const isValidWeightDistribution = computed(() => {
+        return getTotalWeight.value === 100 && selectedCourses.value.length > 0
+    })
+
     const selectedCount = computed(() => selectedCourses.value.length)
     const savedCount = computed(() => savedCourses.value.length)
 
-    // 初始化时加载已保存的课程
+    // 初始化时加载已保存的课程和权重
     loadSavedCourses()
+    loadWeights()
 
     return {
         selectedCourses,
         savedCourses,
+        courseWeights,
         toggleCourse,
         isSelected,
         hasConflict,
@@ -85,6 +124,12 @@ export const useCourseStore = defineStore('course', () => {
         savedCount,
         saveCourses,
         loadSavedCourses,
-        isSaved
+        isSaved,
+        // Weight management
+        saveWeights,
+        loadWeights,
+        getWeight,
+        getTotalWeight,
+        isValidWeightDistribution
     }
 })

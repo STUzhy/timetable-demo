@@ -6,7 +6,7 @@
                     :style="{ width: progress + '%' }"
                     ></div>
         </div>
-        <p>{{ count }} / 10 Courses Selected</p>
+        <p>{{ count }} / 6 Courses Selected (5 Primary + 1 Backup)</p>
     </div>
 </template>
 
@@ -16,7 +16,7 @@ import { computed } from 'vue'
 
 const store = useCourseStore()
 const count = computed(() => store.selectedCount)
-const progress = computed(() => (count.value / 10) * 100)
+const progress = computed(() => (count.value / 6) * 100)
 </script>
 
 <style scoped>
