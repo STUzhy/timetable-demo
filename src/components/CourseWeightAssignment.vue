@@ -211,8 +211,11 @@ const getChartBarStyle = (courseCode) => {
 // Weight management functions
 const handleWeightChange = () => {
   weightsSaved.value = false
-  // Auto-save to localStorage for persistence
-  localStorage.setItem('courseWeights', JSON.stringify(courseWeights.value))
+  // Auto-save to localStorage for persistence and to store
+  const weightsKey = store.getUserStorageKey ? store.getUserStorageKey('courseWeights') : 'courseWeights'
+  localStorage.setItem(weightsKey, JSON.stringify(courseWeights.value))
+  // Also save to store immediately
+  store.saveWeights(courseWeights.value)
 }
 
 const distributeEvenly = () => {
@@ -231,8 +234,9 @@ const prioritizeRequired = () => {
   
   if (requiredCount === 0) return
   
-  const requiredWeight = Math.floor(70 / requiredCount)
-  const electiveWeight = electiveCount > 0 ? Math.floor(30 / electiveCount) : 0
+  // Give 80% weight to required courses, 20% to electives for stronger prioritization
+  const requiredWeight = Math.floor(80 / requiredCount)
+  const electiveWeight = electiveCount > 0 ? Math.floor(20 / electiveCount) : 0
   
   selectedCourses.value.forEach(course => {
     courseWeights.value[course.code] = getCourseType(course) === 'Required' ? requiredWeight : electiveWeight
@@ -290,9 +294,18 @@ watch(selectedCourses, (newCourses, oldCourses) => {
 // Load saved weights on mount
 onMounted(() => {
   try {
-    const saved = localStorage.getItem('courseWeights')
-    if (saved) {
-      courseWeights.value = JSON.parse(saved)
+    // Load from store first
+    courseWeights.value = { ...store.courseWeights }
+    
+    // If no weights in store, try localStorage as fallback
+    if (Object.keys(courseWeights.value).length === 0) {
+      const weightsKey = store.getUserStorageKey ? store.getUserStorageKey('courseWeights') : 'courseWeights'
+      const saved = localStorage.getItem(weightsKey)
+      if (saved) {
+        courseWeights.value = JSON.parse(saved)
+        // Save to store for consistency
+        store.saveWeights(courseWeights.value)
+      }
     }
   } catch (error) {
     console.error('Failed to load saved weights:', error)
@@ -303,10 +316,10 @@ onMounted(() => {
 <style scoped>
 .course-weight-assignment {
   padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--bg-secondary);
   border-radius: 12px;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px var(--shadow);
 }
 
 .weight-header {
@@ -319,7 +332,7 @@ onMounted(() => {
 }
 
 .weight-header h2 {
-  color: var(--nord1);
+  color: var(--text);
   margin: 0;
   font-size: 1.5rem;
 }
@@ -354,7 +367,7 @@ onMounted(() => {
 }
 
 .weight-section h3 {
-  color: var(--nord1);
+  color: var(--text);
   margin-bottom: 1rem;
   font-size: 1.2rem;
 }
@@ -370,9 +383,9 @@ onMounted(() => {
   grid-template-columns: 2fr 3fr;
   gap: 1.5rem;
   padding: 1rem;
-  border: 1px solid var(--nord4);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: white;
+  background: var(--bg-secondary);
   transition: all 0.2s ease;
 }
 
@@ -390,7 +403,7 @@ onMounted(() => {
 
 .course-code {
   font-weight: bold;
-  color: var(--nord1);
+  color: var(--text);
   font-size: 1rem;
 }
 
@@ -414,7 +427,7 @@ onMounted(() => {
 .course-name {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--nord2);
+  color: var(--text);
   margin-bottom: 0.5rem;
 }
 
@@ -423,7 +436,8 @@ onMounted(() => {
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.9rem;
-  color: var(--nord3);
+  color: var(--text);
+  opacity: 0.7;
 }
 
 .weight-controls {
@@ -435,7 +449,7 @@ onMounted(() => {
 .weight-input-group label {
   display: block;
   font-weight: bold;
-  color: var(--nord1);
+  color: var(--text);
   margin-bottom: 0.5rem;
 }
 
@@ -487,7 +501,8 @@ onMounted(() => {
 
 .weight-percentage {
   font-size: 0.9rem;
-  color: var(--nord3);
+  color: var(--text);
+  opacity: 0.7;
   text-align: right;
 }
 
@@ -500,7 +515,7 @@ onMounted(() => {
 .priority-label {
   font-size: 0.8rem;
   font-weight: bold;
-  color: var(--nord2);
+  color: var(--text);
 }
 
 .priority-bar {
@@ -521,12 +536,13 @@ onMounted(() => {
 }
 
 .empty-state h3 {
-  color: var(--nord1);
+  color: var(--text);
   margin-bottom: 1rem;
 }
 
 .empty-state p {
-  color: var(--nord3);
+  color: var(--text);
+  opacity: 0.7;
   line-height: 1.5;
   margin-bottom: 0.5rem;
 }
@@ -538,7 +554,7 @@ onMounted(() => {
 }
 
 .weight-chart {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 8px;
   padding: 1rem;
   border: 1px solid var(--nord4);
@@ -569,7 +585,7 @@ onMounted(() => {
   bottom: -25px;
   font-size: 0.8rem;
   font-weight: bold;
-  color: var(--nord2);
+  color: var(--text);
   white-space: nowrap;
 }
 
@@ -578,7 +594,7 @@ onMounted(() => {
   top: -25px;
   font-size: 0.8rem;
   font-weight: bold;
-  color: var(--nord1);
+  color: var(--text);
 }
 
 .weight-actions {

@@ -268,6 +268,8 @@ const getCellClass = (day, hour) => {
 }
 
 const getCourseItemClass = (course) => {
+  const isFromOtherMajor = course.major && course.major !== 'Management Information Systems'
+  
   if (course.selected) {
     const conflictingSelectedCourses = selectedCourses.value.filter(selectedCourse => 
       selectedCourse.id !== course.id && isTimeConflict(course, selectedCourse)
@@ -276,7 +278,8 @@ const getCourseItemClass = (course) => {
     return {
       'selected': conflictingSelectedCourses.length === 0,
       'conflicted': conflictingSelectedCourses.length > 0,
-      'available': false
+      'available': false,
+      'other-major': isFromOtherMajor && props.showAllCourses
     }
   } else {
     // 检查未选中的课程是否与已选课程冲突
@@ -287,7 +290,8 @@ const getCourseItemClass = (course) => {
     return {
       'selected': false,
       'conflicted': hasConflictWithSelected,
-      'available': !hasConflictWithSelected
+      'available': !hasConflictWithSelected,
+      'other-major': isFromOtherMajor && props.showAllCourses
     }
   }
 }
@@ -485,11 +489,22 @@ const formatCourseTime = (course) => {
 // Simple 3-color system for clear visual feedback
 const getSimpleColorStyle = (course) => {
   const isSelected = course.selected
+  const isFromOtherMajor = course.major && course.major !== 'Management Information Systems'
   
   // Check if this course conflicts with any selected course
   const hasConflictWithSelected = selectedCourses.value.some(selectedCourse => 
     selectedCourse.id !== course.id && isTimeConflict(course, selectedCourse)
   )
+  
+  // If showing all courses and this is from other major, display in grey
+  if (isFromOtherMajor && props.showAllCourses) {
+    return {
+      backgroundColor: '#f5f5f5', // Light grey for other majors
+      borderColor: '#ddd',
+      color: '#888', // Grey text
+      opacity: '0.8'
+    }
+  }
   
   if (isSelected) {
     // Selected course - blue if no conflicts, red if conflicts
@@ -657,9 +672,9 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px var(--shadow);
 }
 
 /* 课程表主体高度控制 */
@@ -668,7 +683,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  background: #e0e0e0;
+  background: var(--border-color);
   overflow: hidden;
   min-height: 0;
   border-radius: 0 0 8px 8px;
@@ -686,10 +701,10 @@ onUnmounted(() => {
 }
 
 .course-sidebar {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px var(--shadow);
   flex: 0 0 auto;
   overflow-y: auto;
   display: flex;
@@ -702,7 +717,7 @@ onUnmounted(() => {
 /* 拖拽分隔条样式 */
 .resizer {
   width: 8px;
-  background: #f0f0f0;
+  background: var(--border-color);
   cursor: col-resize;
   display: flex;
   align-items: center;
@@ -715,7 +730,7 @@ onUnmounted(() => {
 }
 
 .resizer:hover {
-  background: #e0e0e0;
+  background: var(--border-color);
 }
 
 .resizer.resizing {
@@ -735,14 +750,14 @@ onUnmounted(() => {
 }
 
 .resizer.resizing .resizer-handle {
-  background: white;
+  background: var(--bg-secondary);
 }
 
 .calendar-header {
   display: grid;
   grid-template-columns: 80px repeat(7, minmax(0, 1fr));
   gap: 1px;
-  background: #e0e0e0;
+  background: var(--border-color);
   flex-shrink: 0;
   width: 100%;
   min-width: 0;
@@ -751,7 +766,7 @@ onUnmounted(() => {
 }
 
 .time-column {
-  background: #f5f5f5;
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -760,7 +775,7 @@ onUnmounted(() => {
 }
 
 .day-header {
-  background: #f0f0f0;
+  background: var(--border-color);
   padding: 6px;
   text-align: center;
   font-weight: bold;
@@ -768,7 +783,7 @@ onUnmounted(() => {
 }
 
 .time-label {
-  background: #f5f5f5;
+  background: var(--bg);
   padding: 4px 2px;
   text-align: center;
   font-size: 10px;
@@ -778,7 +793,7 @@ onUnmounted(() => {
 }
 
 .time-cell {
-  background: white;
+  background: var(--bg-secondary);
   padding: 0;
   position: relative;
   cursor: default;
@@ -816,7 +831,7 @@ onUnmounted(() => {
 }
 
 .time-cell.has-course {
-  background: #fafafa;
+  background: var(--bg);
   cursor: pointer;
 }
 
@@ -915,7 +930,7 @@ onUnmounted(() => {
 
 .course-sidebar h3 {
   margin: 0 0 16px 0;
-  color: #333;
+  color: var(--text);
   font-size: 18px;
 }
 
@@ -947,8 +962,8 @@ onUnmounted(() => {
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid #e0e0e0;
-  background: white;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
 }
 
 .course-item:hover {
@@ -956,15 +971,15 @@ onUnmounted(() => {
 }
 
 .course-item.selected {
-  background: #81A1C1; /* Nord9 - Brighter blue */
-  border-color: #81A1C1;
+  background: var(--nord9); /* Nord9 - Brighter blue */
+  border-color: var(--nord9);
   color: white;
   box-shadow: 0 2px 6px rgba(129, 161, 193, 0.3);
 }
 
 .course-item.conflicted {
-  background: #BF616A; /* Nord11 - Red */
-  border-color: #BF616A;
+  background: var(--nord11); /* Nord11 - Red */
+  border-color: var(--nord11);
   color: white;
   cursor: pointer; /* Allow clicking to deselect */
   opacity: 1;
@@ -980,6 +995,23 @@ onUnmounted(() => {
   border-color: var(--nord15);
 }
 
+.course-item.other-major {
+  background: #f5f5f5 !important;
+  color: var(--text) !important;
+  opacity: 0.6 !important;
+  border-color: #ddd !important;
+}
+
+.course-item.other-major .course-name,
+.course-item.other-major .course-details {
+  color: var(--text) !important;
+  opacity: 0.6 !important;
+}
+
+.course-item.other-major:hover {
+  background: #eee !important;
+}
+
 .course-info {
   flex: 1;
 }
@@ -988,7 +1020,7 @@ onUnmounted(() => {
   font-weight: bold;
   font-size: 14px;
   margin-bottom: 4px;
-  color: #333;
+  color: var(--text);
 }
 
 .course-item.selected .course-name,
@@ -1001,7 +1033,8 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 2px;
   font-size: 12px;
-  color: #666;
+  color: var(--text);
+  opacity: 0.8;
 }
 
 .course-item.selected .course-details,
@@ -1028,7 +1061,7 @@ onUnmounted(() => {
 }
 
 .status-badge.selected {
-  background: #81A1C1; /* Nord9 - Brighter blue */
+  background: var(--nord9); /* Nord9 - Brighter blue */
   color: white;
 }
 
@@ -1038,7 +1071,7 @@ onUnmounted(() => {
 }
 
 .status-badge.conflicted {
-  background: #BF616A; /* Nord11 - Red */
+  background: var(--nord11); /* Nord11 - Red */
   color: white;
   max-width: 140px;
   white-space: nowrap;
@@ -1062,7 +1095,7 @@ onUnmounted(() => {
 }
 
 .confirm-dialog {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 8px;
   padding: 24px;
   max-width: 500px;
@@ -1084,7 +1117,7 @@ onUnmounted(() => {
 
 .dialog-header h3 {
   margin: 0 0 16px 0;
-  color: #333;
+  color: var(--text);
   font-size: 18px;
 }
 
@@ -1095,18 +1128,20 @@ onUnmounted(() => {
 
 .dialog-content p {
   margin: 8px 0;
-  color: #555;
+  color: var(--text);
+  opacity: 0.8;
 }
 
 .dialog-content strong {
-  color: #333;
+  color: var(--text);
   font-weight: 600;
 }
 
 .time-info {
-  color: #666;
+  color: var(--text);
+  opacity: 0.8;
   font-size: 14px;
-  background: #f5f5f5;
+  background: var(--bg);
   padding: 2px 6px;
   border-radius: 4px;
 }

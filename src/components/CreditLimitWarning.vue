@@ -364,7 +364,8 @@ loadCourseStatuses()
 <style scoped>
 .credit-limit-warning {
   padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--bg-secondary);
+  opacity: 0.95;
   border-radius: 12px;
   margin-bottom: 2rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -380,7 +381,7 @@ loadCourseStatuses()
 }
 
 .credit-header h2 {
-  color: var(--nord1);
+  color: var(--text);
   margin: 0;
   font-size: 1.5rem;
 }
@@ -461,7 +462,7 @@ loadCourseStatuses()
 .progress-label {
   margin: 0;
   font-size: 0.9rem;
-  color: var(--nord2);
+  color: var(--text);
   text-align: center;
   font-weight: 500;
 }
@@ -475,7 +476,7 @@ loadCourseStatuses()
 
 .primary-courses h3,
 .backup-courses h3 {
-  color: var(--nord1);
+  color: var(--text);
   margin-bottom: 1rem;
   display: flex;
   align-items: center;
@@ -493,7 +494,7 @@ loadCourseStatuses()
   border-radius: 8px;
   border: 2px solid transparent;
   transition: all 0.3s ease;
-  background: white;
+  background: var(--bg-secondary);
 }
 
 .course-card.primary {
@@ -516,12 +517,12 @@ loadCourseStatuses()
 
 .course-code {
   font-weight: bold;
-  color: var(--nord1);
+  color: var(--text);
 }
 
 .backup-badge {
   background: var(--nord13);
-  color: var(--nord1);
+  color: var(--nord0);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.7rem;
@@ -546,7 +547,7 @@ loadCourseStatuses()
 
 .course-name {
   font-weight: 600;
-  color: var(--nord2);
+  color: var(--text);
   margin-bottom: 0.5rem;
   font-size: 0.95rem;
   line-height: 1.3;
@@ -557,20 +558,23 @@ loadCourseStatuses()
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.85rem;
-  color: var(--nord3);
+  color: var(--text);
+  opacity: 0.7;
 }
 
 .empty-state {
   text-align: center;
   padding: 2rem 1rem;
-  color: var(--nord3);
-  border: 2px dashed var(--nord4);
+  color: var(--text);
+  opacity: 0.7;
+  border: 2px dashed var(--border-color);
   border-radius: 8px;
 }
 
 .empty-state.backup {
   border-color: var(--nord13);
-  color: var(--nord2);
+  color: var(--text);
+  opacity: 0.7;
 }
 
 .empty-state small {
@@ -602,31 +606,32 @@ loadCourseStatuses()
 
 .warning-item.warning {
   background: rgba(235, 203, 139, 0.1);
-  color: var(--nord1);
+  color: var(--text);
   border-left: 4px solid var(--nord13);
 }
 
 .warning-item.success {
   background: rgba(163, 190, 140, 0.1);
-  color: var(--nord1);
+  color: var(--text);
   border-left: 4px solid var(--nord14);
 }
 
 .warning-item.info {
   background: rgba(136, 192, 208, 0.1);
-  color: var(--nord1);
+  color: var(--text);
   border-left: 4px solid var(--nord8);
 }
 
 .selection-guidance {
-  background: var(--nord6);
+  background: var(--bg-secondary);
   padding: 1.5rem;
   border-radius: 8px;
   margin-bottom: 2rem;
+  border: 1px solid var(--border-color);
 }
 
 .selection-guidance h3 {
-  color: var(--nord1);
+  color: var(--text);
   margin-bottom: 1rem;
 }
 
@@ -638,12 +643,13 @@ loadCourseStatuses()
 
 .guideline-item {
   padding: 0.5rem 0;
-  color: var(--nord2);
+  color: var(--text);
+  opacity: 0.8;
   line-height: 1.5;
 }
 
 .guideline-item strong {
-  color: var(--nord1);
+  color: var(--text);
 }
 
 .quick-actions {

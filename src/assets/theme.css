@@ -18,9 +18,26 @@
 
     --bg: var(--nord6);
     --text: var(--nord1);
+    --bg-secondary: white;
+    --border-color: var(--nord4);
+    --shadow: rgba(0, 0, 0, 0.1);
 }
 
 .dark-theme {
     --bg: var(--nord0);
     --text: var(--nord6);
+    --bg-secondary: var(--nord1);
+    --border-color: var(--nord3);
+    --shadow: rgba(0, 0, 0, 0.3);
+    
+    /* Dark mode specific overrides */
+    --nord4: #4C566A;  /* Use darker shade for borders in dark mode */
+    --nord5: #3B4252;  /* Darker background for cards */
+    --nord6: #ECEFF4;  /* Keep light text */
+}
+
+/* Apply dark theme to body and common elements */
+body.dark-theme {
+    background-color: var(--bg);
+    color: var(--text);
 }

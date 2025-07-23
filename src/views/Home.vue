@@ -57,6 +57,18 @@
                         <h3>Submission Policy</h3>
                         <p>Once submitted, changes to your pre-enrollment preferences will <strong>not be permitted</strong> until after the official registration period begins and required courses have been automatically assigned to eligible students.</p>
                     </div>
+                    
+                    <div class="disclaimer-card">
+                        <div class="disclaimer-icon">📝</div>
+                        <h3>Optional Participation</h3>
+                        <p>This pre-enrollment system is <strong>optional</strong> for students before formal enrollment. If you wish to send your course preferences to the school, you may use this system. However, participation is <strong>not mandatory</strong> for enrollment eligibility.</p>
+                    </div>
+                    
+                    <div class="disclaimer-card">
+                        <div class="disclaimer-icon">⚖️</div>
+                        <h3>Final Interpretation Rights</h3>
+                        <p>City University reserves all rights for final interpretation and decision-making regarding course enrollment, scheduling, and pre-enrollment policies. All enrollment decisions and interpretations of system policies are at the sole discretion of the university administration.</p>
+                    </div>
                 </div>
             </section>
 
@@ -77,8 +89,12 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '../components/AppHeader.vue'
 import LoginDialog from '../components/LoginDialog.vue'
+import { useUserStore } from '../store/userStore.js'
+import { useCourseStore } from '../store/courseStore.js'
 
 const router = useRouter()
+const userStore = useUserStore()
+const courseStore = useCourseStore()
 const showLoginDialog = ref(false)
 
 function showLogin() {
@@ -87,6 +103,14 @@ function showLogin() {
 
 function handleLoginSuccess(student) {
     console.log('Login successful for:', student.name)
+    
+    // Login the user in the store
+    userStore.login(student)
+    
+    // Reload user-specific course data
+    courseStore.loadUserCourses()
+    courseStore.loadSavedCourses()
+    
     router.push('/planning')
 }
 </script>
@@ -94,8 +118,8 @@ function handleLoginSuccess(student) {
 <style scoped>
 .home-page {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: var(--nord5);
-    color: var(--nord1);
+    background: var(--bg);
+    color: var(--text);
     min-height: 100vh;
     width: 100%;
     padding-bottom: 2rem;
@@ -125,23 +149,25 @@ function handleLoginSuccess(student) {
     font-weight: 700;
     margin-bottom: 1.5rem;
     line-height: 1.2;
-    color: var(--nord1);
+    color: var(--text);
 }
 
 .hero-description {
     font-size: 1.1rem;
     margin-bottom: 1.5rem;
     line-height: 1.6;
-    color: var(--nord2);
+    color: var(--text);
+    opacity: 0.8;
 }
 
 .purpose-description {
     font-size: 0.95rem;
     margin-bottom: 2rem;
     line-height: 1.6;
-    color: var(--nord3);
+    color: var(--text);
+    opacity: 0.9;
     padding: 1rem;
-    background: white;
+    background: var(--bg-secondary);
     border-radius: 8px;
     border-left: 4px solid var(--nord10);
 }
@@ -173,20 +199,20 @@ function handleLoginSuccess(student) {
 }
 
 .calendar-preview {
-    background: white;
+    background: var(--bg-secondary);
     border-radius: 12px;
     padding: 1.5rem;
     width: 100%;
     max-width: 400px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--nord4);
+    box-shadow: 0 4px 20px var(--shadow);
+    border: 1px solid var(--border-color);
 }
 
 .preview-header {
     text-align: center;
     font-weight: 600;
     margin-bottom: 1rem;
-    color: var(--nord1);
+    color: var(--text);
     font-size: 0.95rem;
 }
 
@@ -200,10 +226,10 @@ function handleLoginSuccess(student) {
     text-align: center;
     font-weight: 600;
     padding: 0.5rem;
-    background: var(--nord4);
+    background: var(--border-color);
     border-radius: 6px;
     font-size: 0.8rem;
-    color: var(--nord1);
+    color: var(--text);
 }
 
 .preview-block {
@@ -233,7 +259,7 @@ function handleLoginSuccess(student) {
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: 2rem;
-    color: var(--nord1);
+    color: var(--text);
 }
 
 .disclaimer-content {
@@ -244,17 +270,17 @@ function handleLoginSuccess(student) {
 }
 
 .disclaimer-card {
-    background: white;
+    background: var(--bg-secondary);
     padding: 1.5rem;
     border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--nord4);
+    box-shadow: 0 4px 15px var(--shadow);
+    border: 1px solid var(--border-color);
     transition: all 0.3s ease;
 }
 
 .disclaimer-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 25px var(--shadow);
 }
 
 .disclaimer-icon {
@@ -267,12 +293,13 @@ function handleLoginSuccess(student) {
     font-size: 1.2rem;
     font-weight: 600;
     margin-bottom: 1rem;
-    color: var(--nord1);
+    color: var(--text);
     text-align: center;
 }
 
 .disclaimer-card p {
-    color: var(--nord2);
+    color: var(--text);
+    opacity: 0.8;
     line-height: 1.6;
     text-align: left;
     font-size: 0.95rem;
@@ -287,14 +314,14 @@ function handleLoginSuccess(student) {
 }
 
 .action-button {
-    background: white;
+    background: var(--bg-secondary);
     padding: 2rem;
     border-radius: 12px;
     border: 2px solid transparent;
     text-align: center;
     transition: all 0.3s ease;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 15px var(--shadow);
 }
 
 .action-button.primary {
@@ -307,7 +334,7 @@ function handleLoginSuccess(student) {
 
 .action-button:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 25px var(--shadow);
 }
 
 .action-button.primary:hover {
@@ -328,11 +355,12 @@ function handleLoginSuccess(student) {
 .action-button h3 {
     font-size: 1.3rem;
     margin-bottom: 1rem;
-    color: var(--nord1);
+    color: var(--text);
 }
 
 .action-button p {
-    color: var(--nord2);
+    color: var(--text);
+    opacity: 0.8;
     margin: 0;
     font-size: 0.95rem;
 }
