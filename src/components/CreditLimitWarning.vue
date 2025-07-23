@@ -680,7 +680,8 @@ loadCourseStatuses()
 
 .auto-arrange:disabled {
   background: var(--nord4);
-  color: var(--nord3);
+  color: var(--text);
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
