@@ -64,8 +64,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { allStudents, setCurrentStudent } from '../data/studentInfo.js'
+import { useUserStore } from '../store/userStore.js'
 
 const emit = defineEmits(['login-success', 'close'])
+const userStore = useUserStore()
 
 const showDialog = ref(true)
 const loginForm = ref({
@@ -86,6 +88,7 @@ const handleLogin = () => {
   
   if (student) {
     setCurrentStudent(student)
+    userStore.login(student)
     emit('login-success', student)
     closeDialog()
   } else {
@@ -115,14 +118,14 @@ const closeDialog = () => {
 }
 
 .login-dialog {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 2rem;
   max-width: 500px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 40px var(--shadow);
   animation: slideIn 0.3s ease-out;
 }
 
@@ -143,13 +146,14 @@ const closeDialog = () => {
 }
 
 .dialog-header h2 {
-  color: var(--nord1);
+  color: var(--text);
   margin: 0 0 0.5rem 0;
   font-size: 1.8rem;
 }
 
 .dialog-header p {
-  color: var(--nord2);
+  color: var(--text);
+  opacity: 0.8;
   margin: 0;
   font-size: 1rem;
 }
@@ -165,16 +169,18 @@ const closeDialog = () => {
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: var(--nord1);
+  color: var(--text);
   font-weight: 600;
 }
 
 .form-group input {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid var(--nord4);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   font-size: 1rem;
+  background: var(--bg);
+  color: var(--text);
   transition: all 0.3s ease;
   box-sizing: border-box;
 }
@@ -212,12 +218,13 @@ const closeDialog = () => {
 }
 
 .btn-cancel {
-  background: var(--nord4);
-  color: var(--nord2);
+  background: var(--border-color);
+  color: var(--text);
 }
 
 .btn-cancel:hover {
   background: var(--nord3);
+  color: white;
 }
 
 .btn-login {
@@ -231,33 +238,35 @@ const closeDialog = () => {
 }
 
 .btn-login:disabled {
-  background: var(--nord4);
-  color: var(--nord3);
+  background: var(--border-color);
+  color: var(--text);
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .demo-info {
-  border-top: 1px solid var(--nord4);
+  border-top: 1px solid var(--border-color);
   padding-top: 1.5rem;
 }
 
 .demo-info h4 {
-  color: var(--nord1);
+  color: var(--text);
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
 }
 
 .demo-accounts {
-  background: var(--nord6);
+  background: var(--bg);
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid var(--nord4);
+  border: 1px solid var(--border-color);
 }
 
 .demo-account {
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
-  color: var(--nord2);
+  color: var(--text);
+  opacity: 0.8;
 }
 
 .demo-account:last-child {
@@ -265,7 +274,7 @@ const closeDialog = () => {
 }
 
 .demo-account strong {
-  color: var(--nord1);
+  color: var(--text);
 }
 
 @media (max-width: 480px) {

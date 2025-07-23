@@ -6,6 +6,17 @@
             <h1>Course Pre-Enrollment Planning</h1>
             <p>Select courses from the calendar below and assign priority weights to indicate your preferences for the upcoming semester.</p>
 
+            <!-- Login Warning -->
+            <div v-if="!userStore.isLoggedIn" class="login-warning">
+                <div class="warning-content">
+                    <span class="warning-icon">🔒</span>
+                    <div class="warning-text">
+                        <strong>Please Login</strong>
+                        <p>You need to log in to select and save courses. Your course selections will not be saved without logging in first.</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- View-Only Mode Warning -->
             <div v-if="isViewOnly" class="view-only-warning">
                 <div class="warning-content">
@@ -17,37 +28,41 @@
                 </div>
             </div>
 
+            <!-- Course Toggle Button -->
+            <div class="course-toggle-section">
+                <div class="toggle-actions">
+                    <button 
+                        @click="toggleAllCourses" 
+                        class="toggle-courses-btn"
+                        :class="{ 'active': showAllCourses }"
+                        :disabled="isViewOnly"
+                    >
+                        {{ showAllCourses ? 'Show My Major Courses Only' : 'Include All School Courses' }}
+                    </button>
+                    <button 
+                        @click="openSimpleEntry" 
+                        class="simple-entry-btn top-btn"
+                        :disabled="isViewOnly"
+                    >
+                        📝 Simple Course Entry
+                    </button>
+                </div>
+                <p class="toggle-description">
+                    {{ showAllCourses 
+                        ? 'Currently showing all courses from the university. Click to show only your major courses.' 
+                        : 'Currently showing only courses from your major. Click to include courses from other departments.'
+                    }}
+                </p>
+            </div>
+
             <!-- Weekly Calendar - Most Important Function, Moved to Top -->
-            <WeeklyCalendar :show-all-courses="showAllCourses" />
+            <WeeklyCalendar :show-all-courses="showAllCourses" :is-view-only="isViewOnly" />
             
             <!-- Credit Limit Warning - MUST HAVE MoSCoW Requirement -->
             <CreditLimitWarning />
             
             <!-- Course Weight Assignment - MUST HAVE MoSCoW Requirement -->
-            <CourseWeightAssignment />
-            
-            <!-- Course Selection Options -->
-            <div class="course-options">
-                <h2>Course Selection Options</h2>
-                <div class="options-content">
-                    <button 
-                        @click="toggleAllCourses" 
-                        class="toggle-courses-btn"
-                        :class="{ 'active': showAllCourses }"
-                    >
-                        {{ showAllCourses ? 'Show My Major Courses Only' : 'Include All School Courses' }}
-                    </button>
-                    <p class="option-description">
-                        {{ showAllCourses 
-                            ? 'Currently showing all courses from the university. Click to show only your major courses.' 
-                            : 'Currently showing only courses from your major. Click to include courses from other departments.'
-                        }}
-                    </p>
-                    <div class="scroll-hint">
-                        💡 <strong>Tip:</strong> You can scroll horizontally in the timetable to see all days of the week.
-                    </div>
-                </div>
-            </div>
+            <CourseWeightAssignment :is-view-only="isViewOnly" />
             
             <div class="action-buttons">
                 <router-link to="/" class="home-btn">
@@ -56,7 +71,7 @@
                 
                 <button 
                     @click="handleSave" 
-                    :disabled="store.selectedCount === 0"
+                    :disabled="store.selectedCount === 0 || isViewOnly"
                     class="save-btn"
                     :class="{ 'saved': store.isSaved }"
                 >
@@ -71,6 +86,13 @@
                 </button>
             </div>
         </div>
+        
+        <!-- Simple Entry Dialog -->
+        <SimpleEntryDialog 
+            v-if="showSimpleEntryDialog" 
+            @close="showSimpleEntryDialog = false"
+            @courses-entered="handleCoursesEntered"
+        />
     </div>
 </template>
 
@@ -80,13 +102,18 @@ import AppHeader from '../components/AppHeader.vue'
 import CreditLimitWarning from '../components/CreditLimitWarning.vue'
 import CourseWeightAssignment from '../components/CourseWeightAssignment.vue'
 import WeeklyCalendar from '../components/WeeklyCalendar.vue'
+import SimpleEntryDialog from '../components/SimpleEntryDialog.vue'
 import { useCourseStore } from '../store/courseStore.js'
+import { useUserStore } from '../store/userStore.js'
 import { useRouter } from 'vue-router'
+import { requiredCourses, electiveCourses } from '../data/courses.js'
 
 const store = useCourseStore()
+const userStore = useUserStore()
 const router = useRouter()
 const showAllCourses = ref(false)
 const isViewOnly = ref(false)
+const showSimpleEntryDialog = ref(false)
 
 const toggleAllCourses = () => {
     showAllCourses.value = !showAllCourses.value
@@ -116,6 +143,31 @@ const goToProfile = () => {
     router.push('/profile')
 }
 
+const openSimpleEntry = () => {
+    showSimpleEntryDialog.value = true
+}
+
+const handleCoursesEntered = (enteredCourses) => {
+    const allCourses = [...requiredCourses, ...electiveCourses]
+    
+    enteredCourses.forEach(entry => {
+        const course = allCourses.find(c => c.code === entry.code)
+        if (course && !store.isSelected(course.code)) {
+            store.toggleCourse(course)
+        }
+        
+        // Set the weight for the course
+        if (course) {
+            store.courseWeights[course.code] = entry.weight
+        }
+    })
+    
+    // Save weights to localStorage
+    localStorage.setItem('courseWeights', JSON.stringify(store.courseWeights))
+    
+    alert(`Successfully added ${enteredCourses.length} courses with their weights!`)
+}
+
 // Check if the course selection is locked (view-only mode)
 const checkViewOnlyMode = () => {
     const locked = localStorage.getItem('courseSelectionLocked')
@@ -128,8 +180,8 @@ checkViewOnlyMode()
 
 <style scoped>
 .course-planning {
-    background: var(--nord5);
-    color: var(--nord1);
+    background: var(--bg);
+    color: var(--text);
     min-height: 100vh;
     width: 100%;
 }
@@ -141,7 +193,7 @@ checkViewOnlyMode()
 }
 
 .course-planning h1 {
-    color: var(--nord1);
+    color: var(--text);
     font-size: 2rem;
     margin-bottom: 1rem;
     text-align: center;
@@ -149,7 +201,8 @@ checkViewOnlyMode()
 
 .course-planning p {
     text-align: center;
-    color: var(--nord2);
+    color: var(--text);
+    opacity: 0.8;
     font-size: 1.1rem;
     margin-bottom: 2rem;
     max-width: 800px;
@@ -165,7 +218,7 @@ checkViewOnlyMode()
     flex-wrap: wrap;
 }
 
-.home-btn, .save-btn, .profile-btn {
+.home-btn, .save-btn, .profile-btn, .simple-entry-btn {
     padding: 0.75rem 1.5rem;
     border: none;
     border-radius: 8px;
@@ -189,6 +242,27 @@ checkViewOnlyMode()
     transform: translateY(-2px);
 }
 
+.simple-entry-btn {
+    background-color: var(--nord15);
+    color: white;
+}
+
+.simple-entry-btn:hover:not(:disabled) {
+    background-color: var(--nord12);
+    transform: translateY(-2px);
+}
+
+.simple-entry-btn:disabled {
+    background-color: var(--border-color);
+    color: var(--text);
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.simple-entry-btn.top-btn {
+    margin: 0;
+}
+
 .save-btn {
     background-color: var(--nord10);
     color: white;
@@ -200,8 +274,9 @@ checkViewOnlyMode()
 }
 
 .save-btn:disabled {
-    background-color: var(--nord4);
-    color: var(--nord3);
+    background-color: var(--border-color);
+    color: var(--text);
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
@@ -220,35 +295,40 @@ checkViewOnlyMode()
     transform: translateY(-2px);
 }
 
-.course-options {
-    background: white;
+.course-toggle-section {
+    background: var(--bg-secondary);
     border-radius: 12px;
     padding: 1.5rem;
     margin-bottom: 2rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--nord4);
+    box-shadow: 0 4px 15px var(--shadow);
+    border: 1px solid var(--border-color);
+    text-align: center;
 }
 
-.course-options h2 {
-    color: var(--nord1);
-    margin: 0 0 1rem 0;
-    font-size: 1.4rem;
-    border-bottom: 2px solid var(--nord4);
-    padding-bottom: 0.5rem;
-}
-
-.options-content {
+.toggle-actions {
     display: flex;
-    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.toggle-description {
+    color: var(--text);
+    opacity: 0.8;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 1rem 0 0 0;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .toggle-courses-btn {
-    align-self: flex-start;
     padding: 0.75rem 1.5rem;
-    background: var(--nord4);
-    color: var(--nord1);
-    border: 2px solid var(--nord4);
+    background: var(--border-color);
+    color: var(--text);
+    border: 2px solid var(--border-color);
     border-radius: 8px;
     font-size: 1rem;
     font-weight: 600;
@@ -274,21 +354,28 @@ checkViewOnlyMode()
     border-color: var(--nord15);
 }
 
-.option-description {
-    color: var(--nord2);
-    font-size: 0.95rem;
-    line-height: 1.5;
-    margin: 0;
+.toggle-courses-btn:disabled {
+    background: var(--border-color);
+    border-color: var(--border-color);
+    color: var(--text);
+    cursor: not-allowed;
+    opacity: 0.4;
 }
 
-.scroll-hint {
-    background: var(--nord6);
-    border: 1px solid var(--nord4);
-    border-radius: 8px;
-    padding: 0.75rem;
+.toggle-courses-btn:disabled:hover {
+    background: var(--border-color);
+    border-color: var(--border-color);
+    transform: none;
+}
+
+
+.login-warning {
+    background: var(--nord13);
+    border: 1px solid var(--nord12);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 2rem;
     color: var(--nord1);
-    font-size: 0.9rem;
-    border-left: 4px solid var(--nord12);
 }
 
 .view-only-warning {
@@ -333,13 +420,18 @@ checkViewOnlyMode()
         align-items: center;
     }
     
-    .home-btn, .save-btn, .profile-btn {
+    .home-btn, .save-btn, .profile-btn, .simple-entry-btn {
         width: 100%;
         max-width: 300px;
     }
     
-    .toggle-courses-btn {
-        align-self: stretch;
+    .course-toggle-section {
+        padding: 1rem;
+    }
+    
+    .toggle-actions {
+        flex-direction: column;
+        gap: 0.75rem;
     }
 }
 </style>

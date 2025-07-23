@@ -33,12 +33,13 @@ const store = useCourseStore();
 }
 .course {
     padding: 0.5rem 1rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    background-color: #f4f4f4;
+    background-color: var(--bg);
+    color: var(--text);
     cursor: pointer;
 }
 .course.selected {
-    background-color: #cce5ff;
+    background-color: var(--nord8);
 }
 </style>
