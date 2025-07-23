@@ -108,6 +108,13 @@
         <button @click="prioritizeRequired" class="action-btn prioritize-btn">
           Prioritize Required Courses
         </button>
+        <button 
+          @click="optimizeToHundred" 
+          :disabled="totalPoints === 0"
+          class="action-btn optimize-btn"
+        >
+          Optimize to 100
+        </button>
         <button @click="resetWeights" class="action-btn reset-btn">
           Reset All Weights
         </button>
@@ -257,6 +264,57 @@ const resetWeights = () => {
   selectedCourses.value.forEach(course => {
     courseWeights.value[course.code] = 0
   })
+  handleWeightChange()
+}
+
+const optimizeToHundred = () => {
+  const currentTotal = totalPoints.value
+  if (currentTotal === 0 || selectedCourses.value.length === 0) return
+  
+  // 使用更智能的分配算法：最大余数法（汉密尔顿方法）
+  const scaleFactor = 100 / currentTotal
+  
+  // 计算每个课程的精确分配和取整后的分配
+  const courseData = selectedCourses.value.map(course => {
+    const currentWeight = courseWeights.value[course.code] || 0
+    const exactValue = currentWeight * scaleFactor
+    const floorValue = Math.floor(exactValue)
+    const remainder = exactValue - floorValue
+    
+    return {
+      course,
+      currentWeight,
+      exactValue,
+      floorValue,
+      remainder
+    }
+  })
+  
+  // 第一步：分配取整后的值
+  let assignedTotal = 0
+  courseData.forEach(data => {
+    courseWeights.value[data.course.code] = data.floorValue
+    assignedTotal += data.floorValue
+  })
+  
+  // 第二步：将剩余的分数按余数大小分配
+  const remaining = 100 - assignedTotal
+  
+  // 按余数从大到小排序，余数相同时随机排序以避免系统性偏差
+  courseData.sort((a, b) => {
+    const remainderDiff = b.remainder - a.remainder
+    if (Math.abs(remainderDiff) < 0.0001) {
+      // 余数相同时，为了更公平的分配，使用课程代码排序
+      return a.course.code.localeCompare(b.course.code)
+    }
+    return remainderDiff
+  })
+  
+  // 给余数最大的课程各加1分，直到总和为100
+  for (let i = 0; i < remaining; i++) {
+    courseWeights.value[courseData[i].course.code] += 1
+  }
+  
   handleWeightChange()
 }
 
@@ -634,6 +692,22 @@ onMounted(() => {
 .prioritize-btn:hover {
   background: var(--nord11);
   transform: translateY(-2px);
+}
+
+.optimize-btn {
+  background: var(--nord9);
+  color: white;
+}
+
+.optimize-btn:hover:not(:disabled) {
+  background: var(--nord8);
+  transform: translateY(-2px);
+}
+
+.optimize-btn:disabled {
+  background: var(--nord4);
+  color: var(--nord3);
+  cursor: not-allowed;
 }
 
 .reset-btn {
